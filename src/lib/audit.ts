@@ -7,41 +7,7 @@ import { isSupabaseConfigured, supabase } from './supabase'
 
 const AUDIT_STORAGE_KEY = 'beetorial_audit_logs_v1'
 
-const INITIAL_DEMO_LOGS: AuditLog[] = [
-  {
-    id: 'AUD-001',
-    actor_id: 'e0000000-0000-0000-0000-000000000005',
-    actor_name: 'Kavita Sundaram',
-    actor_role: 'super_admin',
-    action: 'SYSTEM_INITIALIZE',
-    resource_type: 'platform',
-    resource_id: 'beetorial-core',
-    metadata: { environment: 'verified_sandbox', rbac_enforced: true },
-    created_at: new Date(Date.now() - 3600000 * 24).toISOString(),
-  },
-  {
-    id: 'AUD-002',
-    actor_id: 'd0000000-0000-0000-0000-000000000004',
-    actor_name: 'Vikram Patel',
-    actor_role: 'admin',
-    action: 'ASSIGN_ROLE',
-    resource_type: 'profiles',
-    resource_id: 'c0000000-0000-0000-0000-000000000003',
-    metadata: { granted_role: 'teacher', target_name: 'Ms. Priya Sharma' },
-    created_at: new Date(Date.now() - 3600000 * 12).toISOString(),
-  },
-  {
-    id: 'AUD-003',
-    actor_id: 'c0000000-0000-0000-0000-000000000003',
-    actor_name: 'Ms. Priya Sharma',
-    actor_role: 'teacher',
-    action: 'CREATE_HOMEWORK',
-    resource_type: 'homework',
-    resource_id: '44444444-4444-4444-4444-444444444441',
-    metadata: { title: 'Fractions Practice Sheet #4' },
-    created_at: new Date(Date.now() - 3600000 * 4).toISOString(),
-  }
-]
+const INITIAL_DEMO_LOGS: AuditLog[] = []
 
 export function getLocalAuditLogs(): AuditLog[] {
   try {

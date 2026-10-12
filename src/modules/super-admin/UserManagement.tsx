@@ -5,6 +5,7 @@ import { Panel } from '../../components/common/Panel'
 import { DataService } from '../../lib/dataService'
 import { Profile } from '../../types'
 import { LoadingSpinner } from '../../components/common/LoadingSpinner'
+import { EmptyState } from '../../components/common/EmptyState'
 
 export const UserManagement: React.FC = () => {
   const [profiles, setProfiles] = useState<Profile[]>([])
@@ -57,32 +58,44 @@ export const UserManagement: React.FC = () => {
                 />
               </div>
 
-              <div className="data-list">
-                {filtered.map((p) => (
-                  <div key={p.id} className="data-row" style={{ padding: '14px 0' }}>
-                    <div className="user-avatar" style={{ width: '36px', height: '36px' }}>
-                      {p.full_name.charAt(0)}
+              {filtered.length === 0 ? (
+                <EmptyState
+                  icon={Users}
+                  title="No Users Found"
+                  description={
+                    search
+                      ? `No profiles matching "${search}".`
+                      : 'No registered user profiles found in the system yet.'
+                  }
+                />
+              ) : (
+                <div className="data-list">
+                  {filtered.map((p) => (
+                    <div key={p.id} className="data-row" style={{ padding: '14px 0' }}>
+                      <div className="user-avatar" style={{ width: '36px', height: '36px' }}>
+                        {p.full_name.charAt(0)}
+                      </div>
+                      <div className="data-main">
+                        <b>{p.full_name}</b>
+                        <small>ID: {p.id} · Phone: {p.phone || 'Not set'}</small>
+                      </div>
+                      <span
+                        style={{
+                          fontSize: '9px',
+                          fontWeight: 700,
+                          padding: '4px 8px',
+                          borderRadius: '6px',
+                          textTransform: 'uppercase',
+                          background: '#eeecff',
+                          color: 'var(--purple)',
+                        }}
+                      >
+                        {p.role}
+                      </span>
                     </div>
-                    <div className="data-main">
-                      <b>{p.full_name}</b>
-                      <small>ID: {p.id} · Phone: {p.phone || 'Not set'}</small>
-                    </div>
-                    <span
-                      style={{
-                        fontSize: '9px',
-                        fontWeight: 700,
-                        padding: '4px 8px',
-                        borderRadius: '6px',
-                        textTransform: 'uppercase',
-                        background: '#eeecff',
-                        color: 'var(--purple)',
-                      }}
-                    >
-                      {p.role}
-                    </span>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </Panel>
           </div>
         </div>

@@ -18,12 +18,16 @@ import { Panel } from '../../components/common/Panel'
 import { DataService } from '../../lib/dataService'
 import { Enquiry } from '../../types'
 import { LoadingSpinner } from '../../components/common/LoadingSpinner'
+import { EmptyState } from '../../components/common/EmptyState'
 import { useAuth } from '../../lib/authContext'
+import { ClassSession, Profile } from '../../types'
 
 export const AdminDashboard: React.FC = () => {
   const nav = useNavigate()
   const { user } = useAuth()
   const [enquiries, setEnquiries] = useState<Enquiry[]>([])
+  const [classes, setClasses] = useState<ClassSession[]>([])
+  const [profiles, setProfiles] = useState<Profile[]>([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState('All')
   const [notice, setNotice] = useState<string | null>(null)
@@ -31,8 +35,14 @@ export const AdminDashboard: React.FC = () => {
   useEffect(() => {
     async function loadData() {
       setLoading(true)
-      const list = await DataService.getEnquiries()
-      setEnquiries(list)
+      const [enqList, classList, profileList] = await Promise.all([
+        DataService.getEnquiries(),
+        DataService.getClasses(),
+        DataService.getProfiles(),
+      ])
+      setEnquiries(enqList)
+      setClasses(classList)
+      setProfiles(profileList)
       setLoading(false)
     }
     loadData()
@@ -43,6 +53,10 @@ export const AdminDashboard: React.FC = () => {
     setEnquiries(enquiries.map((e) => (e.id === id ? { ...e, status } : e)))
     setNotice(`Updated enquiry ${id} status to ${status.toUpperCase()}.`)
   }
+
+  const activeStudentsCount = profiles.filter((p) => p.role === 'student').length
+  const activeTutorsCount = profiles.filter((p) => p.role === 'teacher').length
+  const scheduledClassesCount = classes.filter((c) => c.status === 'scheduled').length
 
   const filteredEnquiries = enquiries.filter(
     (e) =>
@@ -58,10 +72,10 @@ export const AdminDashboard: React.FC = () => {
       activeRole="admin"
     >
       <div className="stat-grid">
-        <Stat label="Active Students" value="1,284" sub="+8.2% this month" icon={GraduationCap} kind="violet" />
-        <Stat label="Active Tutors" value="82" sub="Across all subjects" icon={Users} kind="blue" />
-        <Stat label="Open Enquiries" value={String(enquiries.filter((e) => e.status !== 'closed').length)} sub="8 need follow-up" icon={MessageCircle} kind="green" />
-        <Stat label="Scheduled Classes" value="28" sub="Next 7 days" icon={CalendarDays} kind="orange" />
+        <Stat label="Active Students" value={String(activeStudentsCount)} sub="Enrolled accounts" icon={GraduationCap} kind="violet" />
+        <Stat label="Active Tutors" value={String(activeTutorsCount)} sub="Accredited teachers" icon={Users} kind="blue" />
+        <Stat label="Open Enquiries" value={String(enquiries.filter((e) => e.status !== 'closed').length)} sub="Awaiting response" icon={MessageCircle} kind="green" />
+        <Stat label="Scheduled Classes" value={String(scheduledClassesCount)} sub="Upcoming sessions" icon={CalendarDays} kind="orange" />
       </div>
 
       {notice && (
@@ -100,31 +114,41 @@ export const AdminDashboard: React.FC = () => {
                 </button>
               </div>
 
-              <div className="data-list">
-                {filteredEnquiries.map((enq) => (
-                  <div key={enq.id} className="data-row">
-                    <div className="data-mark" style={{ background: '#f0efff', color: 'var(--purple)' }}>
-                      <MessageCircle size={16} />
+              {filteredEnquiries.length === 0 ? (
+                <div style={{ padding: '24px 0' }}>
+                  <EmptyState
+                    icon={MessageCircle}
+                    title="No incoming enquiries"
+                    description="Parent interest forms submitted through the website will appear here for admissions follow-up."
+                  />
+                </div>
+              ) : (
+                <div className="data-list">
+                  {filteredEnquiries.map((enq) => (
+                    <div key={enq.id} className="data-row">
+                      <div className="data-mark" style={{ background: '#f0efff', color: 'var(--purple)' }}>
+                        <MessageCircle size={16} />
+                      </div>
+                      <div className="data-main">
+                        <b>{enq.subject} · {enq.student_grade || 'Grade 8'}</b>
+                        <small>
+                          {enq.id} · Parent: {enq.parent_name} ({enq.parent_email})
+                        </small>
+                      </div>
+                      <select
+                        className="status-select"
+                        value={enq.status}
+                        onChange={(e) => handleUpdateStatus(enq.id, e.target.value as any)}
+                      >
+                        <option value="new">New</option>
+                        <option value="contacted">Contacted</option>
+                        <option value="trial_booked">Trial booked</option>
+                        <option value="closed">Closed</option>
+                      </select>
                     </div>
-                    <div className="data-main">
-                      <b>{enq.subject} · {enq.student_grade || 'Grade 8'}</b>
-                      <small>
-                        {enq.id} · Parent: {enq.parent_name} ({enq.parent_email})
-                      </small>
-                    </div>
-                    <select
-                      className="status-select"
-                      value={enq.status}
-                      onChange={(e) => handleUpdateStatus(enq.id, e.target.value as any)}
-                    >
-                      <option value="new">New</option>
-                      <option value="contacted">Contacted</option>
-                      <option value="trial_booked">Trial booked</option>
-                      <option value="closed">Closed</option>
-                    </select>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </Panel>
           </div>
 

@@ -6,6 +6,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react'
 import { AppRole, AuthUser } from '../types'
 import { isSupabaseConfigured, supabase } from './supabase'
 import { logSecurityEvent } from './audit'
+import { DataService } from './dataService'
 
 interface AuthContextType {
   user: AuthUser | null
@@ -21,51 +22,6 @@ interface AuthContextType {
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
-
-const DEMO_ACCOUNTS: Record<AppRole, AuthUser> = {
-  parent: {
-    id: 'a0000000-0000-0000-0000-000000000001',
-    email: 'parent@beetorial.example',
-    role: 'parent',
-    full_name: 'Ananya Raman (Parent)',
-    isDemo: true,
-  },
-  student: {
-    id: 'b0000000-0000-0000-0000-000000000002',
-    email: 'student@beetorial.example',
-    role: 'student',
-    full_name: 'Aditi Raman (Student)',
-    isDemo: true,
-  },
-  teacher: {
-    id: 'c0000000-0000-0000-0000-000000000003',
-    email: 'teacher@beetorial.example',
-    role: 'teacher',
-    full_name: 'Ms. Priya Sharma (Teacher)',
-    isDemo: true,
-  },
-  admin: {
-    id: 'd0000000-0000-0000-0000-000000000004',
-    email: 'admin@beetorial.example',
-    role: 'admin',
-    full_name: 'Vikram Patel (Admin)',
-    isDemo: true,
-  },
-  super_admin: {
-    id: 'e0000000-0000-0000-0000-000000000005',
-    email: 'superadmin@beetorial.example',
-    role: 'super_admin',
-    full_name: 'Kavita Sundaram (Super Admin)',
-    isDemo: true,
-  },
-  support: {
-    id: 'f0000000-0000-0000-0000-000000000006',
-    email: 'support@beetorial.example',
-    role: 'support',
-    full_name: 'Rohan Verma (Support)',
-    isDemo: true,
-  },
-}
 
 const LOCAL_SESSION_KEY = 'beetorial_authenticated_session_v2'
 
@@ -162,23 +118,39 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const raw = localStorage.getItem(LOCAL_SESSION_KEY)
       if (raw) {
         const parsed = JSON.parse(raw)
-        if (parsed?.role && DEMO_ACCOUNTS[parsed.role as AppRole]) {
+        if (parsed?.role && parsed?.email) {
           setUser({
-            ...DEMO_ACCOUNTS[parsed.role as AppRole],
-            email: parsed.email || DEMO_ACCOUNTS[parsed.role as AppRole].email,
+            id: parsed.id || `usr_${parsed.role}`,
+            email: parsed.email,
+            role: parsed.role as AppRole,
+            full_name: parsed.full_name || parsed.email.split('@')[0],
+            isDemo: true,
           })
           return
         }
       }
     } catch {}
-    // Default to parent demo
-    setUser(DEMO_ACCOUNTS.parent)
+    setUser(null)
   }
 
-  const switchDemoRole = (targetRole: AppRole) => {
-    const nextUser = DEMO_ACCOUNTS[targetRole]
+  const switchDemoRole = async (targetRole: AppRole) => {
+    const nextUser: AuthUser = {
+      id: user?.id || `usr_${targetRole}`,
+      email: user?.email || `${targetRole}@beetorial.internal`,
+      role: targetRole,
+      full_name: user?.full_name || `${targetRole.replace('_', ' ').replace(/\b\w/g, (l) => l.toUpperCase())} User`,
+      isDemo: true,
+    }
     setUser(nextUser)
-    localStorage.setItem(LOCAL_SESSION_KEY, JSON.stringify({ role: targetRole, email: nextUser.email }))
+    localStorage.setItem(LOCAL_SESSION_KEY, JSON.stringify(nextUser))
+    await DataService.upsertProfile({
+      id: nextUser.id,
+      email: nextUser.email,
+      full_name: nextUser.full_name,
+      role: nextUser.role,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    })
     logSecurityEvent('DEMO_ROLE_SWITCH', 'session', targetRole, { target_role: targetRole }, nextUser)
   }
 
@@ -221,14 +193,38 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     // Verified Sandbox mode sign-in
-    const demoAccount = DEMO_ACCOUNTS[demoRole] || DEMO_ACCOUNTS.parent
+    const trimmedEmail = email.trim() || `${demoRole}@beetorial.internal`
+    const profiles = await DataService.getProfiles()
+    const existing = profiles.find((p) => p.email && p.email.toLowerCase() === trimmedEmail.toLowerCase())
+    const effectiveRole = existing?.role || demoRole
+
     const sandboxUser: AuthUser = {
-      ...demoAccount,
-      email: email || demoAccount.email,
+      id: existing?.id || `usr_${Date.now()}`,
+      email: trimmedEmail,
+      role: effectiveRole,
+      full_name:
+        existing?.full_name ||
+        trimmedEmail.split('@')[0].replace(/[._-]/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase()) ||
+        'Beetorial User',
+      isDemo: true,
     }
+    await DataService.upsertProfile({
+      id: sandboxUser.id,
+      email: sandboxUser.email,
+      full_name: sandboxUser.full_name,
+      role: sandboxUser.role,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    })
     setUser(sandboxUser)
-    localStorage.setItem(LOCAL_SESSION_KEY, JSON.stringify({ role: sandboxUser.role, email: sandboxUser.email }))
-    await logSecurityEvent('SANDBOX_SIGN_IN', 'session', sandboxUser.role, { email: sandboxUser.email, role: sandboxUser.role }, sandboxUser)
+    localStorage.setItem(LOCAL_SESSION_KEY, JSON.stringify(sandboxUser))
+    await logSecurityEvent(
+      'SANDBOX_SIGN_IN',
+      'session',
+      sandboxUser.role,
+      { email: sandboxUser.email, role: sandboxUser.role },
+      sandboxUser
+    )
     setLoading(false)
     return true
   }
@@ -279,8 +275,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       full_name: fullName,
       isDemo: true,
     }
+    await DataService.upsertProfile({
+      id: newDemoUser.id,
+      email: newDemoUser.email,
+      full_name: newDemoUser.full_name,
+      role: newDemoUser.role,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    })
     setUser(newDemoUser)
-    localStorage.setItem(LOCAL_SESSION_KEY, JSON.stringify({ role, email }))
+    localStorage.setItem(LOCAL_SESSION_KEY, JSON.stringify(newDemoUser))
     await logSecurityEvent('SANDBOX_SIGN_UP', 'session', role, { email, role }, newDemoUser)
     setLoading(false)
     return true

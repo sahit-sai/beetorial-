@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react'
-import { BookOpen, Clock3, Plus, X, Check, Video } from 'lucide-react'
+import { BookOpen, Clock3, Plus, X, Check } from 'lucide-react'
 import { AppShell } from '../../components/common/AppShell'
 import { Panel } from '../../components/common/Panel'
+import { EmptyState } from '../../components/common/EmptyState'
 import { MeetingLauncher } from '../../components/providers/MeetingLauncher'
 import { DataService } from '../../lib/dataService'
-import { ClassSession } from '../../types'
+import { ClassSession, Profile } from '../../types'
 import { LoadingSpinner } from '../../components/common/LoadingSpinner'
 import { classSessionSchema } from '../../lib/validation'
 import { useAuth } from '../../lib/authContext'
@@ -12,14 +13,15 @@ import { useAuth } from '../../lib/authContext'
 export const TeacherClasses: React.FC = () => {
   const { user } = useAuth()
   const [classes, setClasses] = useState<ClassSession[]>([])
+  const [students, setStudents] = useState<Profile[]>([])
   const [loading, setLoading] = useState(true)
   const [modalOpen, setModalOpen] = useState(false)
 
-  const [courseTitle, setCourseTitle] = useState('Mathematics · Fractions & ratios')
-  const [studentName, setStudentName] = useState('Aditi Raman')
-  const [startsAt, setStartsAt] = useState('2026-10-15T17:00')
-  const [endsAt, setEndsAt] = useState('2026-10-15T17:45')
-  const [meetingUrl, setMeetingUrl] = useState('https://meet.google.com/demo-beetorial-class')
+  const [courseTitle, setCourseTitle] = useState('')
+  const [studentName, setStudentName] = useState('')
+  const [startsAt, setStartsAt] = useState('')
+  const [endsAt, setEndsAt] = useState('')
+  const [meetingUrl, setMeetingUrl] = useState('')
 
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
@@ -27,8 +29,12 @@ export const TeacherClasses: React.FC = () => {
   useEffect(() => {
     async function loadData() {
       setLoading(true)
-      const data = await DataService.getClasses()
-      setClasses(data)
+      const [classList, profileList] = await Promise.all([
+        DataService.getClasses(),
+        DataService.getProfiles(),
+      ])
+      setClasses(classList)
+      setStudents(profileList.filter((p) => p.role === 'student'))
       setLoading(false)
     }
     loadData()
@@ -38,11 +44,16 @@ export const TeacherClasses: React.FC = () => {
     e.preventDefault()
     setError(null)
 
+    if (!startsAt || !endsAt) {
+      setError('Please provide start and end times.')
+      return
+    }
+
     const parseResult = classSessionSchema.safeParse({
-      student_id: 'b0000000-0000-0000-0000-000000000002',
+      student_id: 'std-selected',
       starts_at: new Date(startsAt).toISOString(),
       ends_at: new Date(endsAt).toISOString(),
-      meeting_url: meetingUrl,
+      meeting_url: meetingUrl || undefined,
     })
 
     if (!parseResult.success) {
@@ -54,10 +65,10 @@ export const TeacherClasses: React.FC = () => {
       const created = await DataService.createClass(
         {
           course_title: courseTitle,
-          teacher_id: user?.id || 'c0000000-0000-0000-0000-000000000003',
-          teacher_name: user?.full_name || 'Ms. Priya Sharma',
-          student_id: 'b0000000-0000-0000-0000-000000000002',
-          student_name: studentName,
+          teacher_id: user?.id,
+          teacher_name: user?.full_name || 'Teacher',
+          student_id: 'std-1',
+          student_name: studentName || 'Enrolled Student',
           starts_at: new Date(startsAt).toISOString(),
           ends_at: new Date(endsAt).toISOString(),
           meeting_url: meetingUrl || null,
@@ -70,6 +81,11 @@ export const TeacherClasses: React.FC = () => {
       setClasses([...classes, created])
       setNotice(`New class scheduled: ${created.course_title}!`)
       setModalOpen(false)
+      setCourseTitle('')
+      setStudentName('')
+      setStartsAt('')
+      setEndsAt('')
+      setMeetingUrl('')
     } catch (err: any) {
       setError(err.message || 'Failed to schedule class.')
     }
@@ -108,33 +124,53 @@ export const TeacherClasses: React.FC = () => {
                 </button>
               }
             >
-              <div className="data-list">
-                {classes.map((cls) => {
-                  const startTime = new Date(cls.starts_at)
-                  return (
-                    <div key={cls.id} className="lesson-row" style={{ padding: '16px 0', borderBottom: '1px solid #f0f1f7' }}>
-                      <div className="lesson-date">
-                        <small>{startTime.toLocaleString('en-US', { month: 'short' }).toUpperCase()}</small>
-                        <b>{startTime.getDate()}</b>
+              {classes.length === 0 ? (
+                <div style={{ padding: '24px 0' }}>
+                  <EmptyState
+                    icon={BookOpen}
+                    title="No classes scheduled"
+                    description="Use the 'Schedule New Class' button to set up your first online lesson."
+                    action={
+                      <button
+                        type="button"
+                        className="button button-primary"
+                        onClick={() => setModalOpen(true)}
+                        style={{ padding: '8px 12px', fontSize: '10px' }}
+                      >
+                        <Plus size={13} /> Schedule New Class
+                      </button>
+                    }
+                  />
+                </div>
+              ) : (
+                <div className="data-list">
+                  {classes.map((cls) => {
+                    const startTime = new Date(cls.starts_at)
+                    return (
+                      <div key={cls.id} className="lesson-row" style={{ padding: '16px 0', borderBottom: '1px solid #f0f1f7' }}>
+                        <div className="lesson-date">
+                          <small>{startTime.toLocaleString('en-US', { month: 'short' }).toUpperCase()}</small>
+                          <b>{startTime.getDate()}</b>
+                        </div>
+                        <div className="lesson-info">
+                          <b>{cls.course_title || 'Class Session'}</b>
+                          <small>Student: {cls.student_name || 'Enrolled Student'} · Status: {cls.status}</small>
+                          <span>
+                            <Clock3 size={13} /> {startTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} IST
+                          </span>
+                        </div>
+                        <MeetingLauncher
+                          meetingUrl={cls.meeting_url}
+                          classTitle={cls.course_title}
+                          classId={cls.id}
+                          canEdit={true}
+                          onEditMeeting={() => alert('Editing meeting links requires admin verification in production.')}
+                        />
                       </div>
-                      <div className="lesson-info">
-                        <b>{cls.course_title || 'Mathematics · Fractions & ratios'}</b>
-                        <small>Student: {cls.student_name || 'Aditi Raman'} · Status: {cls.status}</small>
-                        <span>
-                          <Clock3 size={13} /> {startTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} IST
-                        </span>
-                      </div>
-                      <MeetingLauncher
-                        meetingUrl={cls.meeting_url}
-                        classTitle={cls.course_title}
-                        classId={cls.id}
-                        canEdit={true}
-                        onEditMeeting={() => alert('Editing meeting links requires admin verification in production.')}
-                      />
-                    </div>
-                  )
-                })}
-              </div>
+                    )
+                  })}
+                </div>
+              )}
             </Panel>
           </div>
         </div>
@@ -166,14 +202,26 @@ export const TeacherClasses: React.FC = () => {
 
             <label className="input-label">
               Enrolled Student
-              <select value={studentName} onChange={(e) => setStudentName(e.target.value)}>
-                <option value="Aditi Raman">Aditi Raman (Grade 8)</option>
-                <option value="Rahul Sharma">Rahul Sharma (Grade 6)</option>
-                <option value="Meera K.">Meera K. (Grade 5)</option>
-              </select>
+              {students.length > 0 ? (
+                <select value={studentName} onChange={(e) => setStudentName(e.target.value)}>
+                  <option value="">Select a student...</option>
+                  {students.map((s) => (
+                    <option key={s.id} value={s.full_name}>
+                      {s.full_name} ({s.email})
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <input
+                  required
+                  value={studentName}
+                  onChange={(e) => setStudentName(e.target.value)}
+                  placeholder="Enter student name..."
+                />
+              )}
             </label>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+            <div className="form-grid-2">
               <label className="input-label">
                 Starts At
                 <input
@@ -196,19 +244,19 @@ export const TeacherClasses: React.FC = () => {
             </div>
 
             <label className="input-label">
-              Video Meeting Link (Google Meet / Zoom / Jitsi)
+              Video Classroom Link (Optional)
               <input
                 type="url"
                 value={meetingUrl}
                 onChange={(e) => setMeetingUrl(e.target.value)}
-                placeholder="https://meet.google.com/xyz-abcd-efg"
+                placeholder="https://meet.google.com/..."
               />
             </label>
 
             {error && <div className="error">{error}</div>}
 
             <button className="button button-primary button-full" type="submit">
-              Confirm & Save Session
+              Confirm & Schedule Session
             </button>
           </form>
         </div>

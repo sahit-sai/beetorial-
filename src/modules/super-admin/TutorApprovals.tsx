@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { GraduationCap, Check, X, ShieldCheck, FileText } from 'lucide-react'
 import { AppShell } from '../../components/common/AppShell'
 import { Panel } from '../../components/common/Panel'
+import { EmptyState } from '../../components/common/EmptyState'
 
 interface TutorApplication {
   id: string
@@ -12,32 +13,26 @@ interface TutorApplication {
   status: 'pending_review' | 'approved' | 'rejected'
 }
 
+const STORAGE_KEY = 'beetorial_tutor_applications'
+
 export const TutorApprovals: React.FC = () => {
-  const [applications, setApplications] = useState<TutorApplication[]>([
-    {
-      id: 'APP-201',
-      name: 'Rohan Mehta',
-      subject: 'Computer Science & Python',
-      degrees: 'B.Tech Computer Science · IIT Madras',
-      experience: '4 Years Tutoring K-12',
-      status: 'pending_review',
-    },
-    {
-      id: 'APP-202',
-      name: 'Dr. Shalini Bannerjee',
-      subject: 'Organic Chemistry & NEET Prep',
-      degrees: 'Ph.D. Chemistry · Delhi University',
-      experience: '9 Years Coaching',
-      status: 'pending_review',
-    },
-  ])
+  const [applications, setApplications] = useState<TutorApplication[]>(() => {
+    try {
+      const stored = localStorage.getItem(STORAGE_KEY)
+      return stored ? JSON.parse(stored) : []
+    } catch {
+      return []
+    }
+  })
 
   const [notice, setNotice] = useState<string | null>(null)
 
   const handleDecision = (id: string, decision: 'approved' | 'rejected') => {
-    setApplications(
-      applications.map((a) => (a.id === id ? { ...a, status: decision } : a))
-    )
+    const updated = applications.map((a) => (a.id === id ? { ...a, status: decision } : a))
+    setApplications(updated)
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(updated))
+    } catch {}
     setNotice(`Application ${id} marked as ${decision.toUpperCase()}.`)
   }
 
@@ -58,6 +53,13 @@ export const TutorApprovals: React.FC = () => {
       <div className="dashboard-grid">
         <div className="dashboard-col" style={{ gridColumn: '1 / -1' }}>
           <Panel title="Pending Educator Applications" subtitle="Review teaching credentials before enabling classroom access.">
+            {applications.length === 0 ? (
+              <EmptyState
+                icon={GraduationCap}
+                title="No Pending Tutor Applications"
+                description="There are currently no educator applications waiting for accreditation review or document verification."
+              />
+            ) : (
             <div className="data-list">
               {applications.map((app) => (
                 <div key={app.id} className="data-row" style={{ padding: '16px 0' }}>
@@ -107,6 +109,7 @@ export const TutorApprovals: React.FC = () => {
                 </div>
               ))}
             </div>
+            )}
           </Panel>
         </div>
       </div>

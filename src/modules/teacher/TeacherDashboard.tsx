@@ -8,6 +8,7 @@ import { MeetingLauncher } from '../../components/providers/MeetingLauncher'
 import { DataService } from '../../lib/dataService'
 import { ClassSession, HomeworkSubmission } from '../../types'
 import { LoadingSpinner } from '../../components/common/LoadingSpinner'
+import { EmptyState } from '../../components/common/EmptyState'
 
 export const TeacherDashboard: React.FC = () => {
   const nav = useNavigate()
@@ -30,7 +31,11 @@ export const TeacherDashboard: React.FC = () => {
   }, [])
 
   const nextClass = classes.find((c) => c.status === 'scheduled')
+  const nextClassDate = nextClass ? new Date(nextClass.starts_at) : null
   const pendingGrading = submissions.filter((s) => s.score == null)
+  const uniqueStudents = new Set(classes.map((c) => c.student_name).filter(Boolean)).size
+  const completedClasses = classes.filter((c) => c.status === 'completed').length
+  const attendanceRate = classes.length > 0 ? `${Math.round((completedClasses / classes.length) * 100)}%` : '0%'
 
   return (
     <AppShell
@@ -39,10 +44,10 @@ export const TeacherDashboard: React.FC = () => {
       activeRole="teacher"
     >
       <div className="stat-grid">
-        <Stat label="Active Classes" value="6" sub="2 happening today" icon={BookOpen} kind="violet" />
-        <Stat label="My Students" value="84" sub="Across all subjects" icon={Users} kind="blue" />
-        <Stat label="To Review" value={String(submissions.length)} sub="Homework submissions" icon={ClipboardList} kind="orange" />
-        <Stat label="Attendance Rate" value="94%" sub="This month" icon={CalendarDays} kind="green" />
+        <Stat label="Active Classes" value={String(classes.filter((c) => c.status === 'scheduled').length)} sub="Scheduled sessions" icon={BookOpen} kind="violet" />
+        <Stat label="My Students" value={String(uniqueStudents)} sub="Enrolled learners" icon={Users} kind="blue" />
+        <Stat label="To Review" value={String(pendingGrading.length)} sub="Pending grades" icon={ClipboardList} kind="orange" />
+        <Stat label="Attendance Rate" value={attendanceRate} sub="Class completion" icon={CalendarDays} kind="green" />
       </div>
 
       {loading ? (
@@ -59,17 +64,17 @@ export const TeacherDashboard: React.FC = () => {
                 </button>
               }
             >
-              {nextClass ? (
+              {nextClass && nextClassDate ? (
                 <div className="lesson-row" style={{ padding: '14px 0' }}>
                   <div className="lesson-date">
-                    <small>OCT</small>
-                    <b>14</b>
+                    <small>{nextClassDate.toLocaleString('en-US', { month: 'short' }).toUpperCase()}</small>
+                    <b>{nextClassDate.getDate()}</b>
                   </div>
                   <div className="lesson-info">
-                    <b>{nextClass.course_title || 'Mathematics · Fractions & ratios'}</b>
-                    <small>Learner: {nextClass.student_name || 'Aditi Raman'} · 1-on-1 Online</small>
+                    <b>{nextClass.course_title || 'Class Session'}</b>
+                    <small>Learner: {nextClass.student_name || 'Enrolled Student'} · 1-on-1 Online</small>
                     <span>
-                      <Clock3 size={13} /> Tomorrow, 5:00–5:45 PM IST
+                      <Clock3 size={13} /> {nextClassDate.toLocaleDateString()} at {nextClassDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} IST
                     </span>
                   </div>
                   <MeetingLauncher
@@ -79,7 +84,13 @@ export const TeacherDashboard: React.FC = () => {
                   />
                 </div>
               ) : (
-                <div className="empty">No classes scheduled today.</div>
+                <div style={{ padding: '18px 0' }}>
+                  <EmptyState
+                    icon={BookOpen}
+                    title="No classes scheduled today"
+                    description="You have no upcoming sessions on the calendar. Schedule a lesson to start teaching."
+                  />
+                </div>
               )}
             </Panel>
 
@@ -92,27 +103,37 @@ export const TeacherDashboard: React.FC = () => {
                 </button>
               }
             >
-              <div className="data-list">
-                {submissions.slice(0, 3).map((sub) => (
-                  <div key={sub.id} className="data-row">
-                    <div className="data-mark" style={{ background: '#f0efff', color: 'var(--purple)' }}>
-                      <ClipboardList size={16} />
+              {submissions.length === 0 ? (
+                <div style={{ padding: '18px 0' }}>
+                  <EmptyState
+                    icon={ClipboardList}
+                    title="No submissions awaiting review"
+                    description="When students upload solutions for assignments, they will appear here for grading."
+                  />
+                </div>
+              ) : (
+                <div className="data-list">
+                  {submissions.slice(0, 3).map((sub) => (
+                    <div key={sub.id} className="data-row">
+                      <div className="data-mark" style={{ background: '#f0efff', color: 'var(--purple)' }}>
+                        <ClipboardList size={16} />
+                      </div>
+                      <div className="data-main">
+                        <b>{sub.student_name || 'Enrolled Student'} · Assignment Solution</b>
+                        <small style={{ marginTop: '3px' }}>Notes: "{sub.notes}"</small>
+                      </div>
+                      <button
+                        type="button"
+                        className="button button-primary"
+                        onClick={() => nav('/teacher/homework')}
+                        style={{ padding: '6px 10px', fontSize: '9px' }}
+                      >
+                        {sub.score != null ? 'Edit Grade' : 'Grade'}
+                      </button>
                     </div>
-                    <div className="data-main">
-                      <b>{sub.student_name || 'Aditi Raman'} · Fractions Practice Sheet #4</b>
-                      <small style={{ marginTop: '3px' }}>Notes: "{sub.notes}"</small>
-                    </div>
-                    <button
-                      type="button"
-                      className="button button-primary"
-                      onClick={() => nav('/teacher/homework')}
-                      style={{ padding: '6px 10px', fontSize: '9px' }}
-                    >
-                      {sub.score != null ? 'Edit Grade' : 'Grade'}
-                    </button>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </Panel>
           </div>
 
@@ -154,8 +175,8 @@ export const TeacherDashboard: React.FC = () => {
                 <label className="todo">
                   <input type="checkbox" defaultChecked />
                   <span>
-                    <b>Mark yesterday's session attendance</b>
-                    <small>Aditi Raman marked present with notes.</small>
+                    <b>Mark completed session attendance</b>
+                    <small>Keep parent records updated with attendance marks.</small>
                   </span>
                 </label>
                 <label className="todo">

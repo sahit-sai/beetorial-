@@ -5,6 +5,7 @@ import { Panel } from '../../components/common/Panel'
 import { DataService } from '../../lib/dataService'
 import { Course } from '../../types'
 import { LoadingSpinner } from '../../components/common/LoadingSpinner'
+import { EmptyState } from '../../components/common/EmptyState'
 import { courseSchema } from '../../lib/validation'
 import { useAuth } from '../../lib/authContext'
 
@@ -113,36 +114,54 @@ export const CourseManagement: React.FC = () => {
                 </button>
               }
             >
-              <div className="data-list">
-                {courses.map((c) => (
-                  <div key={c.id} className="data-row" style={{ padding: '16px 0' }}>
-                    <div className="data-mark" style={{ background: '#f5f3ff', color: 'var(--purple)' }}>
-                      <BookOpen size={16} />
-                    </div>
-                    <div className="data-main">
-                      <b>{c.title} · {c.grade_level}</b>
-                      <small style={{ marginTop: '3px' }}>{c.description}</small>
-                    </div>
+              {courses.length === 0 ? (
+                <EmptyState
+                  icon={BookOpen}
+                  title="No Courses Created Yet"
+                  description="Get started by adding your first curriculum package or syllabus module."
+                  action={
                     <button
                       type="button"
-                      onClick={() => handleStatusToggle(c.id, c.status)}
-                      style={{
-                        padding: '5px 9px',
-                        borderRadius: '6px',
-                        border: 0,
-                        fontSize: '9px',
-                        fontWeight: 700,
-                        textTransform: 'uppercase',
-                        background: c.status === 'published' ? '#e6f8ec' : '#fff4df',
-                        color: c.status === 'published' ? '#24845a' : '#93651a',
-                        cursor: 'pointer',
-                      }}
+                      className="button button-primary"
+                      onClick={() => setModalOpen(true)}
+                      style={{ padding: '8px 14px', fontSize: '10px' }}
                     >
-                      {c.status}
+                      <Plus size={12} /> Add New Course
                     </button>
-                  </div>
-                ))}
-              </div>
+                  }
+                />
+              ) : (
+                <div className="data-list">
+                  {courses.map((c) => (
+                    <div key={c.id} className="data-row" style={{ padding: '16px 0' }}>
+                      <div className="data-mark" style={{ background: '#f5f3ff', color: 'var(--purple)' }}>
+                        <BookOpen size={16} />
+                      </div>
+                      <div className="data-main">
+                        <b>{c.title} · {c.grade_level}</b>
+                        <small style={{ marginTop: '3px' }}>{c.description}</small>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleStatusToggle(c.id, c.status)}
+                        style={{
+                          padding: '5px 9px',
+                          borderRadius: '6px',
+                          border: 0,
+                          fontSize: '9px',
+                          fontWeight: 700,
+                          textTransform: 'uppercase',
+                          background: c.status === 'published' ? '#e6f8ec' : '#fff4df',
+                          color: c.status === 'published' ? '#24845a' : '#93651a',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        {c.status}
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </Panel>
           </div>
         </div>
@@ -171,7 +190,7 @@ export const CourseManagement: React.FC = () => {
               />
             </label>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+            <div className="form-grid-2">
               <label className="input-label">
                 Subject
                 <select value={subject} onChange={(e) => setSubject(e.target.value)}>

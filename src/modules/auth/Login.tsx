@@ -1,5 +1,5 @@
-import React, { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import React, { useState, useEffect } from 'react'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import {
   ArrowRight,
   Check,
@@ -9,7 +9,6 @@ import {
   LockKeyhole,
   Sparkles,
   ShieldCheck,
-  AlertCircle,
 } from 'lucide-react'
 import { Logo } from '../../components/common/Logo'
 import { AppRole } from '../../types'
@@ -32,16 +31,30 @@ const ROLE_LABELS: Record<AppRole, string> = {
   teacher: 'Teacher',
   admin: 'Admin',
   super_admin: 'Super Admin',
-  support: 'Support Agent',
+  support: 'Support',
+}
+
+function resolveRole(rawRole: string | null): AppRole {
+  const clean = (rawRole || '').trim().toLowerCase()
+  if (clean === 'student') return 'student'
+  if (clean === 'teacher' || clean === 'tutor') return 'teacher'
+  if (clean === 'super_admin' || clean === 'superadmin') return 'super_admin'
+  if (clean === 'admin') return 'admin'
+  if (clean === 'support') return 'support'
+  return 'parent'
 }
 
 export const Login: React.FC = () => {
   const nav = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
+  const redirectParam = searchParams.get('redirect')
+  const roleParam = searchParams.get('role') || searchParams.get('portal')
+
   const { signIn, signUp, error: authError } = useAuth()
   const isSupabase = isSupabaseConfigured()
 
   const [mode, setMode] = useState<'login' | 'signup'>('login')
-  const [role, setRole] = useState<AppRole>('parent')
+  const [role, setRole] = useState<AppRole>(() => resolveRole(roleParam))
   const [email, setEmail] = useState('')
   const [fullName, setFullName] = useState('')
   const [password, setPassword] = useState('')
@@ -49,9 +62,51 @@ export const Login: React.FC = () => {
   const [validationError, setValidationError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
 
+  // Keep role in sync with URL search parameter if changed
+  useEffect(() => {
+    if (roleParam) {
+      setRole(resolveRole(roleParam))
+    }
+  }, [roleParam])
+
+  // Smart role detection from typed email
+  const handleEmailChange = (val: string) => {
+    setEmail(val)
+    const lower = val.toLowerCase()
+    if (lower.includes('student') && role !== 'student') {
+      setRole('student')
+    } else if ((lower.includes('teacher') || lower.includes('tutor')) && role !== 'teacher') {
+      setRole('teacher')
+    } else if ((lower.includes('superadmin') || lower.includes('super_admin')) && role !== 'super_admin') {
+      setRole('super_admin')
+    } else if (lower.includes('admin') && !lower.includes('super') && role !== 'admin') {
+      setRole('admin')
+    } else if (lower.includes('support') && role !== 'support') {
+      setRole('support')
+    }
+  }
+
+  const handlePortalSelect = (selectedRole: AppRole) => {
+    setRole(selectedRole)
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev)
+      next.set('role', selectedRole)
+      return next
+    })
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setValidationError(null)
+
+    // Final check: if email hints a role that differs from current state
+    let targetRole = role
+    const lowerEmail = email.trim().toLowerCase()
+    if (lowerEmail.includes('student')) targetRole = 'student'
+    else if (lowerEmail.includes('teacher') || lowerEmail.includes('tutor')) targetRole = 'teacher'
+    else if (lowerEmail.includes('superadmin') || lowerEmail.includes('super_admin')) targetRole = 'super_admin'
+    else if (lowerEmail.includes('admin') && !lowerEmail.includes('super')) targetRole = 'admin'
+    else if (lowerEmail.includes('support')) targetRole = 'support'
 
     if (mode === 'login') {
       const parsed = authLoginSchema.safeParse({ email, password })
@@ -61,18 +116,19 @@ export const Login: React.FC = () => {
       }
 
       setSubmitting(true)
-      const success = await signIn(email, password, role)
+      const success = await signIn(email, password, targetRole)
       setSubmitting(false)
 
       if (success) {
-        nav(ROLE_PATHS[role])
+        const dest = redirectParam ? decodeURIComponent(redirectParam) : ROLE_PATHS[targetRole]
+        nav(dest)
       }
     } else {
       const parsed = authSignupSchema.safeParse({
         email,
         password,
         full_name: fullName,
-        role,
+        role: targetRole,
       })
       if (!parsed.success) {
         setValidationError(parsed.error.issues[0].message)
@@ -80,11 +136,12 @@ export const Login: React.FC = () => {
       }
 
       setSubmitting(true)
-      const success = await signUp(email, password, fullName, role)
+      const success = await signUp(email, password, fullName, targetRole)
       setSubmitting(false)
 
       if (success) {
-        nav(ROLE_PATHS[role])
+        const dest = redirectParam ? decodeURIComponent(redirectParam) : ROLE_PATHS[targetRole]
+        nav(dest)
       }
     }
   }
@@ -132,8 +189,8 @@ export const Login: React.FC = () => {
           <h2>{mode === 'login' ? 'Welcome back' : 'Create an account'}</h2>
           <p>
             {isSupabase
-              ? 'Sign in with your verified Supabase credentials.'
-              : 'Choose a role to explore in Verified Sandbox Mode.'}
+              ? `Sign in to access your verified ${ROLE_LABELS[role]} account.`
+              : `Signing in to ${ROLE_LABELS[role]} workspace.`}
           </p>
 
           <div
@@ -143,7 +200,7 @@ export const Login: React.FC = () => {
               padding: '4px',
               background: '#f4f2ff',
               borderRadius: '9px',
-              marginBottom: '16px',
+              marginBottom: '14px',
             }}
           >
             <button
@@ -182,19 +239,51 @@ export const Login: React.FC = () => {
             </button>
           </div>
 
-          <label className="input-label">
-            Target Role Workspace
-            <select
-              value={role}
-              onChange={(e) => setRole(e.target.value as AppRole)}
+          {/* Portal Switcher & Active Indicator */}
+          <div style={{ marginBottom: '16px' }}>
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                fontSize: '9px',
+                fontWeight: 800,
+                letterSpacing: '1.1px',
+                color: '#858ca2',
+                marginBottom: '7px',
+              }}
             >
-              {(['parent', 'student', 'teacher', 'admin', 'super_admin', 'support'] as AppRole[]).map((r) => (
-                <option key={r} value={r}>
-                  {ROLE_LABELS[r]}
-                </option>
-              ))}
-            </select>
-          </label>
+              <span>ACCESS PORTAL</span>
+              <span style={{ color: 'var(--purple)', fontWeight: 700 }}>
+                {ROLE_LABELS[role]} Workspace
+              </span>
+            </div>
+            <div style={{ display: 'flex', gap: '5px', flexWrap: 'wrap' }}>
+              {(['parent', 'student', 'teacher', 'admin', 'super_admin', 'support'] as AppRole[]).map((r) => {
+                const active = role === r
+                return (
+                  <button
+                    key={r}
+                    type="button"
+                    onClick={() => handlePortalSelect(r)}
+                    style={{
+                      border: `1px solid ${active ? 'var(--purple)' : '#e5e8f2'}`,
+                      background: active ? '#eeecff' : '#ffffff',
+                      color: active ? 'var(--purple)' : '#626a82',
+                      fontSize: '10px',
+                      fontWeight: active ? 800 : 600,
+                      padding: '5px 9px',
+                      borderRadius: '7px',
+                      cursor: 'pointer',
+                      transition: 'all .15s',
+                    }}
+                  >
+                    {ROLE_LABELS[r]}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
 
           {mode === 'signup' && (
             <label className="input-label">
@@ -203,7 +292,7 @@ export const Login: React.FC = () => {
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
                 type="text"
-                placeholder="e.g. Ananya Raman"
+                placeholder="Enter your full name"
                 required
               />
             </label>
@@ -213,7 +302,7 @@ export const Login: React.FC = () => {
             Email address
             <input
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(e) => handleEmailChange(e.target.value)}
               type="email"
               placeholder="you@example.com"
               required
@@ -251,7 +340,11 @@ export const Login: React.FC = () => {
             type="submit"
             disabled={submitting}
           >
-            {submitting ? 'Authenticating...' : `Open ${ROLE_LABELS[role]} Dashboard`}{' '}
+            {submitting
+              ? 'Authenticating...'
+              : mode === 'login'
+              ? `Sign In to ${ROLE_LABELS[role]} Dashboard`
+              : `Create ${ROLE_LABELS[role]} Account`}{' '}
             <ArrowRight size={16} />
           </button>
 
@@ -264,7 +357,7 @@ export const Login: React.FC = () => {
             ) : (
               <>
                 <Sparkles size={15} />
-                Verified Sandbox Mode: Instant switching between all 6 roles with persistent local storage.
+                Verified Sandbox Mode: Instant switching between all roles with persistent local storage.
               </>
             )}
           </div>

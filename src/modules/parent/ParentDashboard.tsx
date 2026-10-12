@@ -27,7 +27,10 @@ export const ParentDashboard: React.FC = () => {
     loadData()
   }, [])
 
+  const completedCount = classes.filter((c) => c.status === 'completed').length
+  const attendancePct = classes.length > 0 ? `${Math.round((completedCount / classes.length) * 100)}%` : '0%'
   const nextClass = classes.find((c) => c.status === 'scheduled')
+  const nextClassDate = nextClass ? new Date(nextClass.starts_at) : null
 
   return (
     <AppShell
@@ -36,10 +39,16 @@ export const ParentDashboard: React.FC = () => {
       activeRole="parent"
     >
       <div className="stat-grid">
-        <Stat label="Learning progress" value="78%" sub="+12% this month" icon={TrendingUp} kind="violet" />
-        <Stat label="Lessons completed" value="8" sub="2 this week" icon={BookOpen} kind="blue" />
-        <Stat label="Attendance" value="96%" sub="On track" icon={CalendarDays} kind="green" />
-        <Stat label="Next lesson" value="Tomorrow" sub="5:00 PM · Mathematics" icon={Clock3} kind="orange" />
+        <Stat label="Learning progress" value={classes.length > 0 ? attendancePct : '0%'} sub={classes.length > 0 ? 'Active track' : 'No sessions yet'} icon={TrendingUp} kind="violet" />
+        <Stat label="Lessons completed" value={String(completedCount)} sub={`${classes.length} total enrolled`} icon={BookOpen} kind="blue" />
+        <Stat label="Attendance" value={attendancePct} sub={classes.length > 0 ? 'Recorded' : 'Awaiting classes'} icon={CalendarDays} kind="green" />
+        <Stat
+          label="Next lesson"
+          value={nextClassDate ? nextClassDate.toLocaleDateString([], { month: 'short', day: 'numeric' }) : 'None'}
+          sub={nextClass ? `${nextClassDate?.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} · ${nextClass.course_title || 'Session'}` : 'No upcoming classes'}
+          icon={Clock3}
+          kind="orange"
+        />
       </div>
 
       {notice && (
@@ -68,18 +77,18 @@ export const ParentDashboard: React.FC = () => {
                 <div className="week-head">
                   <div>
                     <b>Weekly session goal</b>
-                    <small>4 of 5 sessions completed</small>
+                    <small>{completedCount} of {Math.max(classes.length, 1)} sessions completed</small>
                   </div>
-                  <strong>80%</strong>
+                  <strong>{classes.length > 0 ? attendancePct : '0%'}</strong>
                 </div>
                 <div className="progress large">
-                  <span style={{ width: '80%' }} />
+                  <span style={{ width: classes.length > 0 ? attendancePct : '0%' }} />
                 </div>
                 <div className="week-days">
                   {['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((d, i) => (
                     <div key={i}>
-                      <span className={i < 4 ? 'day-done' : i === 4 ? 'day-next' : 'day-empty'}>
-                        {i < 4 ? <Check size={13} /> : i === 4 ? '•' : '—'}
+                      <span className={i < completedCount ? 'day-done' : i === completedCount && nextClass ? 'day-next' : 'day-empty'}>
+                        {i < completedCount ? <Check size={13} /> : i === completedCount && nextClass ? '•' : '—'}
                       </span>
                       <small>{d}</small>
                     </div>
@@ -97,17 +106,17 @@ export const ParentDashboard: React.FC = () => {
                 </button>
               }
             >
-              {nextClass ? (
+              {nextClass && nextClassDate ? (
                 <div className="lesson-row" style={{ padding: '14px 0' }}>
                   <div className="lesson-date">
-                    <small>OCT</small>
-                    <b>14</b>
+                    <small>{nextClassDate.toLocaleString('en-US', { month: 'short' }).toUpperCase()}</small>
+                    <b>{nextClassDate.getDate()}</b>
                   </div>
                   <div className="lesson-info">
-                    <b>{nextClass.course_title || 'Mathematics · Fractions & ratios'}</b>
-                    <small>With {nextClass.teacher_name || 'Ms. Priya Sharma'} · Online class</small>
+                    <b>{nextClass.course_title || 'Tutoring Session'}</b>
+                    <small>With {nextClass.teacher_name || 'Assigned Tutor'} · Online class</small>
                     <span>
-                      <Clock3 size={13} /> Tomorrow, 5:00–5:45 PM IST
+                      <Clock3 size={13} /> {nextClassDate.toLocaleDateString()} at {nextClassDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} IST
                     </span>
                   </div>
                   <MeetingLauncher
@@ -117,30 +126,36 @@ export const ParentDashboard: React.FC = () => {
                   />
                 </div>
               ) : (
-                <div className="empty">No sessions currently scheduled.</div>
+                <div className="empty" style={{ textAlign: 'center', padding: '24px 12px' }}>
+                  No sessions currently scheduled.
+                </div>
               )}
             </Panel>
           </div>
 
           <div className="dashboard-col">
             <Panel title="Skill confidence index" subtitle="Areas evaluated across recent exercises.">
-              <div className="skill-list">
-                {[
-                  { name: 'Mathematics (Fractions & Ratios)', score: 78, color: 'violet' },
-                  { name: 'Science (Cell Biology)', score: 86, color: 'green' },
-                  { name: 'English (Reading Comprehension)', score: 72, color: 'blue' },
-                ].map((x) => (
-                  <div className="skill" key={x.name}>
-                    <div>
-                      <span>{x.name}</span>
-                      <b>{x.score}%</b>
+              {classes.length === 0 ? (
+                <div className="empty" style={{ textAlign: 'center', padding: '24px 12px' }}>
+                  Skill evaluations will appear here as lessons and homework exercises are completed.
+                </div>
+              ) : (
+                <div className="skill-list">
+                  {[
+                    { name: 'Core Subject Concepts', score: parseInt(attendancePct) || 75, color: 'violet' },
+                  ].map((x) => (
+                    <div className="skill" key={x.name}>
+                      <div>
+                        <span>{x.name}</span>
+                        <b>{x.score}%</b>
+                      </div>
+                      <div className="progress">
+                        <span className={x.color} style={{ width: `${x.score}%` }} />
+                      </div>
                     </div>
-                    <div className="progress">
-                      <span className={x.color} style={{ width: `${x.score}%` }} />
-                    </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </Panel>
 
             <Panel title="Quick parental actions" subtitle="Shortcuts for common parental requests.">
@@ -157,7 +172,7 @@ export const ParentDashboard: React.FC = () => {
                 </button>
                 <button type="button" onClick={() => nav('/parent/messages')}>
                   <span><MessageCircle size={16} /></span>
-                  Message Ms. Priya Sharma
+                  Message Assigned Tutor
                   <ArrowRight size={14} />
                 </button>
                 <button type="button" onClick={() => nav('/parent/progress')}>

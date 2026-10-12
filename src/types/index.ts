@@ -7,6 +7,7 @@ export type AppRole = 'parent' | 'student' | 'teacher' | 'admin' | 'super_admin'
 export interface Profile {
   id: string
   full_name: string
+  email?: string | null
   role: AppRole
   avatar_url?: string | null
   phone?: string | null

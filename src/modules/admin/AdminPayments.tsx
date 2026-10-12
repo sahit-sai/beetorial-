@@ -6,6 +6,7 @@ import { Stat } from '../../components/common/Stat'
 import { DataService } from '../../lib/dataService'
 import { Payment } from '../../types'
 import { LoadingSpinner } from '../../components/common/LoadingSpinner'
+import { EmptyState } from '../../components/common/EmptyState'
 
 export const AdminPayments: React.FC = () => {
   const [payments, setPayments] = useState<Payment[]>([])
@@ -59,8 +60,8 @@ export const AdminPayments: React.FC = () => {
         />
         <Stat
           label="Active Packages"
-          value="48"
-          sub="Monthly plans"
+          value={String(payments.length)}
+          sub="Recorded packages"
           icon={ShieldCheck}
           kind="violet"
         />
@@ -100,41 +101,51 @@ export const AdminPayments: React.FC = () => {
                 />
               </div>
 
-              <div className="data-list">
-                {filtered.map((p) => (
-                  <div key={p.id} className="data-row" style={{ padding: '16px 0' }}>
-                    <div className="data-mark" style={{ background: p.status === 'paid' ? '#e6f8ec' : '#fff8e6', color: p.status === 'paid' ? '#24845a' : '#c98a1f' }}>
-                      <CreditCard size={16} />
+              {filtered.length === 0 ? (
+                <div style={{ padding: '24px 0' }}>
+                  <EmptyState
+                    icon={CreditCard}
+                    title="No invoices or payments recorded"
+                    description="Payment transactions and tuition package orders will appear here once processed."
+                  />
+                </div>
+              ) : (
+                <div className="data-list">
+                  {filtered.map((p) => (
+                    <div key={p.id} className="data-row" style={{ padding: '16px 0' }}>
+                      <div className="data-mark" style={{ background: p.status === 'paid' ? '#e6f8ec' : '#fff8e6', color: p.status === 'paid' ? '#24845a' : '#c98a1f' }}>
+                        <CreditCard size={16} />
+                      </div>
+                      <div className="data-main">
+                        <b>{p.description || 'Tutoring Package'} · {p.payer_name || 'Guardian'}</b>
+                        <small style={{ marginTop: '3px' }}>
+                          Ref: {p.provider_reference} · Provider: {p.provider.toUpperCase()} · {new Date(p.created_at).toLocaleDateString()}
+                        </small>
+                      </div>
+                      <div style={{ textAlign: 'right' }}>
+                        <b style={{ fontSize: '13px', color: 'var(--ink)' }}>
+                          ₹{(p.amount_paise / 100).toLocaleString('en-IN')}
+                        </b>
+                        <span
+                          style={{
+                            display: 'block',
+                            fontSize: '9px',
+                            fontWeight: 700,
+                            padding: '3px 8px',
+                            borderRadius: '6px',
+                            textTransform: 'uppercase',
+                            marginTop: '4px',
+                            background: p.status === 'paid' ? '#e5f8eb' : '#fff4df',
+                            color: p.status === 'paid' ? '#24845a' : '#93651a',
+                          }}
+                        >
+                          {p.status}
+                        </span>
+                      </div>
                     </div>
-                    <div className="data-main">
-                      <b>{p.description || 'Tutoring Package'} · {p.payer_name || 'Guardian'}</b>
-                      <small style={{ marginTop: '3px' }}>
-                        Ref: {p.provider_reference} · Provider: {p.provider.toUpperCase()} · {new Date(p.created_at).toLocaleDateString()}
-                      </small>
-                    </div>
-                    <div style={{ textAlign: 'right' }}>
-                      <b style={{ fontSize: '13px', color: 'var(--ink)' }}>
-                        ₹{(p.amount_paise / 100).toLocaleString('en-IN')}
-                      </b>
-                      <span
-                        style={{
-                          display: 'block',
-                          fontSize: '9px',
-                          fontWeight: 700,
-                          padding: '3px 8px',
-                          borderRadius: '6px',
-                          textTransform: 'uppercase',
-                          marginTop: '4px',
-                          background: p.status === 'paid' ? '#e5f8eb' : '#fff4df',
-                          color: p.status === 'paid' ? '#24845a' : '#93651a',
-                        }}
-                      >
-                        {p.status}
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </Panel>
           </div>
         </div>

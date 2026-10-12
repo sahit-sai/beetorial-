@@ -6,6 +6,7 @@ import { MeetingLauncher } from '../../components/providers/MeetingLauncher'
 import { DataService } from '../../lib/dataService'
 import { ClassSession } from '../../types'
 import { LoadingSpinner } from '../../components/common/LoadingSpinner'
+import { EmptyState } from '../../components/common/EmptyState'
 
 export const ScheduleView: React.FC = () => {
   const [classes, setClasses] = useState<ClassSession[]>([])
@@ -54,41 +55,51 @@ export const ScheduleView: React.FC = () => {
                 </button>
               }
             >
-              <div className="data-list">
-                {classes.map((cls) => {
-                  const startTime = new Date(cls.starts_at)
-                  return (
-                    <div key={cls.id} className="lesson-row" style={{ padding: '16px 0', borderBottom: '1px solid #f0f1f7' }}>
-                      <div className="lesson-date">
-                        <small>{startTime.toLocaleString('en-US', { month: 'short' }).toUpperCase()}</small>
-                        <b>{startTime.getDate()}</b>
-                      </div>
-                      <div className="lesson-info">
-                        <b>{cls.course_title || 'Mathematics · Fractions & ratios'}</b>
-                        <small>Tutor: {cls.teacher_name || 'Ms. Priya Sharma'} · 1-on-1 Online</small>
-                        <span>
-                          <Clock3 size={13} /> {startTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} IST
-                          {' · '}
-                          <span style={{ textTransform: 'capitalize', fontWeight: 700, color: cls.status === 'completed' ? '#24845a' : 'var(--purple)' }}>
-                            {cls.status}
+              {classes.length === 0 ? (
+                <div style={{ padding: '20px 0' }}>
+                  <EmptyState
+                    icon={CalendarDays}
+                    title="No sessions scheduled"
+                    description="Upcoming live tutoring classes will be listed here once scheduled by your tutor."
+                  />
+                </div>
+              ) : (
+                <div className="data-list">
+                  {classes.map((cls) => {
+                    const startTime = new Date(cls.starts_at)
+                    return (
+                      <div key={cls.id} className="lesson-row" style={{ padding: '16px 0', borderBottom: '1px solid #f0f1f7' }}>
+                        <div className="lesson-date">
+                          <small>{startTime.toLocaleString('en-US', { month: 'short' }).toUpperCase()}</small>
+                          <b>{startTime.getDate()}</b>
+                        </div>
+                        <div className="lesson-info">
+                          <b>{cls.course_title || 'Tutoring Session'}</b>
+                          <small>Tutor: {cls.teacher_name || 'Assigned Tutor'} · 1-on-1 Online</small>
+                          <span>
+                            <Clock3 size={13} /> {startTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} IST
+                            {' · '}
+                            <span style={{ textTransform: 'capitalize', fontWeight: 700, color: cls.status === 'completed' ? '#24845a' : 'var(--purple)' }}>
+                              {cls.status}
+                            </span>
                           </span>
-                        </span>
+                        </div>
+                        {cls.status === 'scheduled' ? (
+                          <MeetingLauncher
+                            meetingUrl={cls.meeting_url}
+                            classTitle={cls.course_title}
+                            classId={cls.id}
+                          />
+                        ) : (
+                          <span style={{ fontSize: '10px', color: '#24845a', fontWeight: 700, background: '#e5f8eb', padding: '6px 10px', borderRadius: '7px' }}>
+                            Completed
+                          </span>
+                        )}
                       </div>
-                      {cls.status === 'scheduled' ? (
-                        <MeetingLauncher
-                          meetingUrl={cls.meeting_url}
-                          classTitle={cls.course_title}
-                          classId={cls.id}
-                        />
-                      ) : (
-                        <span style={{ fontSize: '10px', color: '#24845a', fontWeight: 700, background: '#e5f8eb', padding: '6px 10px', borderRadius: '7px' }}>
-                          Completed
-                        </span>
-                      )}
-                    </div>
-                  )
-                })}
-              </div>
+                    )
+                  })}
+                </div>
+              )}
             </Panel>
           </div>
 
@@ -99,7 +110,7 @@ export const ScheduleView: React.FC = () => {
                   <input type="checkbox" defaultChecked />
                   <span>
                     <b>Session reminder 1 hour before</b>
-                    <small>Sent via WhatsApp to parent mobile (+91 98765 43210).</small>
+                    <small>Sent via WhatsApp to registered guardian mobile number.</small>
                   </span>
                 </label>
                 <label className="todo">

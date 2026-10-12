@@ -5,6 +5,7 @@ import { Panel } from '../../components/common/Panel'
 import { DataService } from '../../lib/dataService'
 import { Homework, HomeworkSubmission } from '../../types'
 import { LoadingSpinner } from '../../components/common/LoadingSpinner'
+import { EmptyState } from '../../components/common/EmptyState'
 import { homeworkSchema, gradeSubmissionSchema } from '../../lib/validation'
 import { useAuth } from '../../lib/authContext'
 
@@ -131,57 +132,90 @@ export const HomeworkGrading: React.FC = () => {
                 </button>
               }
             >
-              <div className="data-list">
-                {homeworkList.map((hw) => (
-                  <div key={hw.id} className="data-row" style={{ padding: '14px 0' }}>
-                    <div className="data-mark" style={{ background: '#f5f3ff', color: 'var(--purple)' }}>
-                      <ClipboardList size={16} />
+              {homeworkList.length === 0 ? (
+                <div style={{ padding: '24px 0' }}>
+                  <EmptyState
+                    icon={ClipboardList}
+                    title="No assignments issued yet"
+                    description="Use the 'New Assignment' button above to create homework tasks for your students."
+                    action={
+                      <button
+                        type="button"
+                        className="button button-primary"
+                        onClick={() => setCreateOpen(true)}
+                        style={{ padding: '8px 12px', fontSize: '10px' }}
+                      >
+                        <Plus size={13} /> New Assignment
+                      </button>
+                    }
+                  />
+                </div>
+              ) : (
+                <div className="data-list">
+                  {homeworkList.map((hw) => (
+                    <div key={hw.id} className="data-row" style={{ padding: '14px 0' }}>
+                      <div className="data-mark" style={{ background: '#f5f3ff', color: 'var(--purple)' }}>
+                        <ClipboardList size={16} />
+                      </div>
+                      <div className="data-main">
+                        <b>{hw.title}</b>
+                        <small style={{ marginTop: '3px' }}>{hw.instructions}</small>
+                        <small style={{ marginTop: '5px', color: '#858ca2' }}>
+                          Due: {hw.due_at ? new Date(hw.due_at).toLocaleDateString() : 'Flexible'}
+                        </small>
+                      </div>
                     </div>
-                    <div className="data-main">
-                      <b>{hw.title}</b>
-                      <small style={{ marginTop: '3px' }}>{hw.instructions}</small>
-                      <small style={{ marginTop: '5px', color: '#858ca2' }}>
-                        Due: {hw.due_at ? new Date(hw.due_at).toLocaleDateString() : 'Flexible'}
-                      </small>
-                    </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </Panel>
           </div>
 
           <div className="dashboard-col">
             <Panel title="Student Submissions & Grading" subtitle="Review uploaded solution sheets and award scores.">
-              <div className="data-list">
-                {submissions.map((sub) => (
-                  <div key={sub.id} className="data-row" style={{ alignItems: 'flex-start', padding: '14px 0' }}>
-                    <div className="data-mark" style={{ background: sub.score != null ? '#e6f8ec' : '#fff4df', color: sub.score != null ? '#24845a' : '#d28b2b' }}>
-                      <Award size={16} />
-                    </div>
-                    <div className="data-main">
-                      <b>{sub.student_name || 'Aditi Raman'} · Fractions Practice</b>
-                      <div style={{ margin: '3px 0', fontSize: '11px', fontWeight: 700, color: sub.score != null ? 'var(--purple)' : '#d28b2b' }}>
-                        {sub.score != null ? `Score: ${sub.score} / 100` : 'Awaiting Grade'}
+              {submissions.length === 0 ? (
+                <div style={{ padding: '24px 0' }}>
+                  <EmptyState
+                    icon={Award}
+                    title="No submissions received"
+                    description="Student homework submissions will appear here once submitted."
+                  />
+                </div>
+              ) : (
+                <div className="data-list">
+                  {submissions.map((sub) => {
+                    const matchedHw = homeworkList.find((h) => h.id === sub.homework_id)
+                    return (
+                      <div key={sub.id} className="data-row" style={{ alignItems: 'flex-start', padding: '14px 0' }}>
+                        <div className="data-mark" style={{ background: sub.score != null ? '#e6f8ec' : '#fff4df', color: sub.score != null ? '#24845a' : '#d28b2b' }}>
+                          <Award size={16} />
+                        </div>
+                        <div className="data-main">
+                          <b>{sub.student_name || 'Enrolled Student'} · {matchedHw?.title || 'Assignment'}</b>
+                          <div style={{ margin: '3px 0', fontSize: '11px', fontWeight: 700, color: sub.score != null ? 'var(--purple)' : '#d28b2b' }}>
+                            {sub.score != null ? `Score: ${sub.score} / 100` : 'Awaiting Grade'}
+                          </div>
+                          <small style={{ fontStyle: 'italic', color: '#555d78' }}>
+                            "{sub.feedback || 'No feedback entered yet.'}"
+                          </small>
+                        </div>
+                        <button
+                          type="button"
+                          className="subtle-button"
+                          onClick={() => {
+                            setGradeSub(sub)
+                            setScore(sub.score ?? 90)
+                            setFeedback(sub.feedback || '')
+                          }}
+                          style={{ padding: '6px 10px', fontSize: '9px' }}
+                        >
+                          {sub.score != null ? 'Edit Grade' : 'Grade'}
+                        </button>
                       </div>
-                      <small style={{ fontStyle: 'italic', color: '#555d78' }}>
-                        "{sub.feedback || 'No feedback entered yet.'}"
-                      </small>
-                    </div>
-                    <button
-                      type="button"
-                      className="subtle-button"
-                      onClick={() => {
-                        setGradeSub(sub)
-                        setScore(sub.score ?? 90)
-                        setFeedback(sub.feedback || '')
-                      }}
-                      style={{ padding: '6px 10px', fontSize: '9px' }}
-                    >
-                      {sub.score != null ? 'Edit Grade' : 'Grade'}
-                    </button>
-                  </div>
-                ))}
-              </div>
+                    )
+                  })}
+                </div>
+              )}
             </Panel>
           </div>
         </div>

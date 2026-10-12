@@ -16,21 +16,37 @@ import { Panel } from '../../components/common/Panel'
 import { DataService } from '../../lib/dataService'
 import { AuditLog } from '../../types'
 import { LoadingSpinner } from '../../components/common/LoadingSpinner'
+import { EmptyState } from '../../components/common/EmptyState'
+import { Payment, Profile } from '../../types'
 
 export const SuperAdminDashboard: React.FC = () => {
   const nav = useNavigate()
   const [logs, setLogs] = useState<AuditLog[]>([])
+  const [profiles, setProfiles] = useState<Profile[]>([])
+  const [payments, setPayments] = useState<Payment[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     async function loadData() {
       setLoading(true)
-      const data = await DataService.getAuditLogs()
-      setLogs(data)
+      const [logList, profileList, paymentList] = await Promise.all([
+        DataService.getAuditLogs(),
+        DataService.getProfiles(),
+        DataService.getPayments(),
+      ])
+      setLogs(logList)
+      setProfiles(profileList)
+      setPayments(paymentList)
       setLoading(false)
     }
     loadData()
   }, [])
+
+  const userCount = profiles.length
+  const tutorCount = profiles.filter((p) => p.role === 'teacher').length
+  const revenuePaise = payments
+    .filter((p) => p.status === 'paid')
+    .reduce((sum, p) => sum + p.amount_paise, 0)
 
   return (
     <AppShell
@@ -39,10 +55,10 @@ export const SuperAdminDashboard: React.FC = () => {
       activeRole="super_admin"
     >
       <div className="stat-grid">
-        <Stat label="Platform Users" value="2,480" sub="+8.2% this month" icon={Users} kind="violet" />
-        <Stat label="Active Tutors" value="164" sub="Across 6 subjects" icon={GraduationCap} kind="blue" />
-        <Stat label="Monthly Revenue" value="₹4.8L" sub="+12.4% this month" icon={Wallet} kind="green" />
-        <Stat label="Pending Approvals" value="12" sub="Requires review" icon={ShieldCheck} kind="orange" />
+        <Stat label="Platform Users" value={String(userCount)} sub="Active accounts" icon={Users} kind="violet" />
+        <Stat label="Active Tutors" value={String(tutorCount)} sub="Accredited teachers" icon={GraduationCap} kind="blue" />
+        <Stat label="Total Settled" value={`₹${(revenuePaise / 100).toLocaleString('en-IN')}`} sub="Platform revenue" icon={Wallet} kind="green" />
+        <Stat label="Security Events" value={String(logs.length)} sub="Audit records" icon={ShieldCheck} kind="orange" />
       </div>
 
       {loading ? (
@@ -59,21 +75,31 @@ export const SuperAdminDashboard: React.FC = () => {
                 </button>
               }
             >
-              <div className="data-list">
-                {logs.slice(0, 5).map((log) => (
-                  <div key={log.id} className="data-row" style={{ padding: '12px 0' }}>
-                    <div className="data-mark" style={{ background: '#f5f3ff', color: 'var(--purple)' }}>
-                      <ClipboardList size={16} />
+              {logs.length === 0 ? (
+                <div style={{ padding: '24px 0' }}>
+                  <EmptyState
+                    icon={ClipboardList}
+                    title="No security audit events recorded"
+                    description="Security operations, authentication attempts and role changes will appear here."
+                  />
+                </div>
+              ) : (
+                <div className="data-list">
+                  {logs.slice(0, 5).map((log) => (
+                    <div key={log.id} className="data-row" style={{ padding: '12px 0' }}>
+                      <div className="data-mark" style={{ background: '#f5f3ff', color: 'var(--purple)' }}>
+                        <ClipboardList size={16} />
+                      </div>
+                      <div className="data-main">
+                        <b>{log.action} · {log.resource_type}</b>
+                        <small>
+                          Actor: {log.actor_name || log.actor_role} · {new Date(log.created_at).toLocaleString()}
+                        </small>
+                      </div>
                     </div>
-                    <div className="data-main">
-                      <b>{log.action} · {log.resource_type}</b>
-                      <small>
-                        Actor: {log.actor_name || log.actor_role} · {new Date(log.created_at).toLocaleString()}
-                      </small>
-                    </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </Panel>
           </div>
 

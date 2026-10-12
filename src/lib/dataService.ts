@@ -32,243 +32,16 @@ const KEY_PAYMENTS = `${STORE_PREFIX}payments`
 const KEY_TICKETS = `${STORE_PREFIX}tickets`
 const KEY_PROFILES = `${STORE_PREFIX}profiles`
 
-// Initial Seed Data for Local Development & Sandbox
-const INITIAL_PROFILES: Profile[] = [
-  {
-    id: 'a0000000-0000-0000-0000-000000000001',
-    full_name: 'Ananya Raman (Parent)',
-    role: 'parent',
-    phone: '+91 98765 43210',
-    created_at: '2026-10-01T10:00:00Z',
-    updated_at: '2026-10-01T10:00:00Z',
-  },
-  {
-    id: 'b0000000-0000-0000-0000-000000000002',
-    full_name: 'Aditi Raman (Student)',
-    role: 'student',
-    phone: '+91 98765 43211',
-    created_at: '2026-10-01T10:00:00Z',
-    updated_at: '2026-10-01T10:00:00Z',
-  },
-  {
-    id: 'c0000000-0000-0000-0000-000000000003',
-    full_name: 'Ms. Priya Sharma (Teacher)',
-    role: 'teacher',
-    phone: '+91 98765 43212',
-    created_at: '2026-10-01T10:00:00Z',
-    updated_at: '2026-10-01T10:00:00Z',
-  },
-  {
-    id: 'd0000000-0000-0000-0000-000000000004',
-    full_name: 'Vikram Patel (Admin)',
-    role: 'admin',
-    phone: '+91 98765 43213',
-    created_at: '2026-10-01T10:00:00Z',
-    updated_at: '2026-10-01T10:00:00Z',
-  },
-  {
-    id: 'e0000000-0000-0000-0000-000000000005',
-    full_name: 'Kavita Sundaram (Super Admin)',
-    role: 'super_admin',
-    phone: '+91 98765 43214',
-    created_at: '2026-10-01T10:00:00Z',
-    updated_at: '2026-10-01T10:00:00Z',
-  },
-  {
-    id: 'f0000000-0000-0000-0000-000000000006',
-    full_name: 'Rohan Verma (Support)',
-    role: 'support',
-    phone: '+91 98765 43215',
-    created_at: '2026-10-01T10:00:00Z',
-    updated_at: '2026-10-01T10:00:00Z',
-  },
-]
-
-const INITIAL_COURSES: Course[] = [
-  {
-    id: 'crs-101',
-    title: 'Mastering Fractions & Ratios',
-    subject: 'Mathematics',
-    grade_level: 'Grade 8',
-    description: 'Foundational clarity in fractional arithmetic and ratio problem solving.',
-    status: 'published',
-    created_by: 'c0000000-0000-0000-0000-000000000003',
-    created_at: new Date(Date.now() - 3600000 * 72).toISOString(),
-  },
-  {
-    id: 'crs-102',
-    title: 'Cell Biology & Living Systems',
-    subject: 'Science',
-    grade_level: 'Grade 8',
-    description: 'Interactive understanding of cellular structures, functions, and ecosystems.',
-    status: 'published',
-    created_by: 'c0000000-0000-0000-0000-000000000003',
-    created_at: new Date(Date.now() - 3600000 * 48).toISOString(),
-  },
-  {
-    id: 'crs-103',
-    title: 'Advanced Algebraic Expressions',
-    subject: 'Mathematics',
-    grade_level: 'Grade 9',
-    description: 'Linear equations, factorization methods, and graphical interpretation.',
-    status: 'draft',
-    created_by: 'c0000000-0000-0000-0000-000000000003',
-    created_at: new Date(Date.now() - 3600000 * 24).toISOString(),
-  },
-]
-
-const INITIAL_CLASSES: ClassSession[] = [
-  {
-    id: 'cls-101',
-    course_id: 'crs-101',
-    course_title: 'Mathematics · Fractions & ratios',
-    teacher_id: 'c0000000-0000-0000-0000-000000000003',
-    teacher_name: 'Ms. Priya Sharma',
-    student_id: 'b0000000-0000-0000-0000-000000000002',
-    student_name: 'Aditi Raman',
-    starts_at: new Date(Date.now() + 3600000 * 24).toISOString(),
-    ends_at: new Date(Date.now() + 3600000 * 24 + 45 * 60000).toISOString(),
-    meeting_url: 'https://meet.google.com/demo-beetorial-class',
-    meeting_provider: 'google_meet',
-    status: 'scheduled',
-    created_at: new Date().toISOString(),
-  },
-  {
-    id: 'cls-102',
-    course_id: 'crs-102',
-    course_title: 'Science · Cell Biology',
-    teacher_id: 'c0000000-0000-0000-0000-000000000003',
-    teacher_name: 'Ms. Priya Sharma',
-    student_id: 'b0000000-0000-0000-0000-000000000002',
-    student_name: 'Aditi Raman',
-    starts_at: new Date(Date.now() - 3600000 * 48).toISOString(),
-    ends_at: new Date(Date.now() - 3600000 * 48 + 45 * 60000).toISOString(),
-    meeting_url: null,
-    meeting_provider: 'unconfigured',
-    status: 'completed',
-    created_at: new Date(Date.now() - 3600000 * 72).toISOString(),
-  },
-]
-
-const INITIAL_ATTENDANCE: ClassAttendance[] = [
-  {
-    id: 'att-101',
-    class_id: 'cls-102',
-    student_id: 'b0000000-0000-0000-0000-000000000002',
-    student_name: 'Aditi Raman',
-    status: 'present',
-    notes: 'Active engagement in cell division exercises.',
-    recorded_by: 'c0000000-0000-0000-0000-000000000003',
-    recorded_at: new Date(Date.now() - 3600000 * 47).toISOString(),
-  },
-]
-
-const INITIAL_HOMEWORK: Homework[] = [
-  {
-    id: 'hw-101',
-    class_id: 'cls-101',
-    title: 'Fractions Practice Sheet #4',
-    instructions: 'Complete exercises 1 to 15 on page 42. Focus on unlike denominators.',
-    due_at: new Date(Date.now() + 3600000 * 72).toISOString(),
-    created_by: 'c0000000-0000-0000-0000-000000000003',
-    created_at: new Date(Date.now() - 3600000 * 12).toISOString(),
-  },
-]
-
-const INITIAL_SUBMISSIONS: HomeworkSubmission[] = [
-  {
-    id: 'sub-101',
-    homework_id: 'hw-101',
-    student_id: 'b0000000-0000-0000-0000-000000000002',
-    student_name: 'Aditi Raman',
-    submission_url: 'https://beetorial.example/submissions/hw4.pdf',
-    notes: 'Completed all questions, had a question on #14.',
-    score: 92,
-    feedback: 'Excellent reasoning on reciprocal multiplication. Review problem #14 step 2.',
-    submitted_at: new Date(Date.now() - 3600000 * 6).toISOString(),
-  },
-]
-
-const INITIAL_ENQUIRIES: Enquiry[] = [
-  {
-    id: 'ENQ-1042',
-    parent_name: 'Ananya R.',
-    parent_email: 'ananya@example.com',
-    parent_phone: '+91 98765 43210',
-    student_grade: 'Grade 8',
-    subject: 'Mathematics',
-    notes: 'Interested in personalized ratio and algebra support.',
-    status: 'new',
-    created_at: new Date(Date.now() - 3600000 * 2).toISOString(),
-  },
-  {
-    id: 'ENQ-1041',
-    parent_name: 'Rahul K.',
-    parent_email: 'rahul@example.com',
-    parent_phone: '+91 98765 22222',
-    student_grade: 'Grade 6',
-    subject: 'Science',
-    notes: 'Looking for twice-weekly concept foundation sessions.',
-    status: 'contacted',
-    created_at: new Date(Date.now() - 3600000 * 24).toISOString(),
-  },
-  {
-    id: 'ENQ-1040',
-    parent_name: 'Meera S.',
-    parent_email: 'meera@example.com',
-    parent_phone: '+91 98765 33333',
-    student_grade: 'Grade 5',
-    subject: 'English',
-    notes: 'Trial booked for reading comprehension and writing.',
-    status: 'trial_booked',
-    created_at: new Date(Date.now() - 3600000 * 48).toISOString(),
-  },
-]
-
-const INITIAL_PAYMENTS: Payment[] = [
-  {
-    id: 'pay-101',
-    payer_id: 'a0000000-0000-0000-0000-000000000001',
-    payer_name: 'Ananya Raman',
-    amount_paise: 450000,
-    currency: 'INR',
-    provider: 'sandbox',
-    provider_reference: 'SANDBOX_ORD_9812',
-    description: 'Monthly 8-Session Mathematics Tutoring Plan',
-    status: 'paid',
-    is_verified: true,
-    created_at: new Date(Date.now() - 3600000 * 72).toISOString(),
-  },
-  {
-    id: 'pay-102',
-    payer_id: 'a0000000-0000-0000-0000-000000000001',
-    payer_name: 'Ananya Raman',
-    amount_paise: 250000,
-    currency: 'INR',
-    provider: 'sandbox',
-    provider_reference: 'SANDBOX_ORD_9813',
-    description: 'Specialized Science Concept Reinforcement Pack',
-    status: 'pending',
-    is_verified: false,
-    created_at: new Date(Date.now() - 3600000 * 12).toISOString(),
-  },
-]
-
-const INITIAL_TICKETS: SupportTicket[] = [
-  {
-    id: 'tkt-101',
-    user_id: 'a0000000-0000-0000-0000-000000000001',
-    user_name: 'Ananya Raman',
-    user_role: 'parent',
-    subject: 'Reschedule Tuesday session',
-    description: 'Need to move Tuesday 5 PM session to Wednesday due to family conflict.',
-    priority: 'medium',
-    status: 'open',
-    assigned_to: 'f0000000-0000-0000-0000-000000000006',
-    created_at: new Date(Date.now() - 3600000 * 8).toISOString(),
-    updated_at: new Date(Date.now() - 3600000 * 8).toISOString(),
-  },
-]
+// Initial Data: completely clean with zero dummy records
+const INITIAL_PROFILES: Profile[] = []
+const INITIAL_COURSES: Course[] = []
+const INITIAL_CLASSES: ClassSession[] = []
+const INITIAL_ATTENDANCE: ClassAttendance[] = []
+const INITIAL_HOMEWORK: Homework[] = []
+const INITIAL_SUBMISSIONS: HomeworkSubmission[] = []
+const INITIAL_ENQUIRIES: Enquiry[] = []
+const INITIAL_PAYMENTS: Payment[] = []
+const INITIAL_TICKETS: SupportTicket[] = []
 
 // Helper Storage Getters/Setters
 function getStore<T>(key: string, initial: T[]): T[] {
@@ -286,13 +59,23 @@ function setStore<T>(key: string, data: T[]): void {
 }
 
 export const DataService = {
-  // --- PROFILES / USERS ---
   async getProfiles(): Promise<Profile[]> {
     if (isSupabaseConfigured() && supabase) {
       const { data, error } = await supabase.from('profiles').select('*').order('created_at', { ascending: false })
       if (!error && data) return data
     }
     return getStore<Profile>(KEY_PROFILES, INITIAL_PROFILES)
+  },
+
+  async upsertProfile(profile: Profile): Promise<Profile> {
+    if (isSupabaseConfigured() && supabase) {
+      const { data } = await supabase.from('profiles').upsert(profile).select().single()
+      if (data) return data
+    }
+    const list = getStore<Profile>(KEY_PROFILES, INITIAL_PROFILES)
+    const filtered = list.filter((p) => p.id !== profile.id)
+    setStore(KEY_PROFILES, [profile, ...filtered])
+    return profile
   },
 
   async assignUserRole(targetUserId: string, newRole: AppRole, actor?: { id: string; role: AppRole; name?: string; full_name?: string }): Promise<boolean> {

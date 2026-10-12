@@ -5,6 +5,7 @@ import { Panel } from '../../components/common/Panel'
 import { DataService } from '../../lib/dataService'
 import { SupportTicket } from '../../types'
 import { LoadingSpinner } from '../../components/common/LoadingSpinner'
+import { EmptyState } from '../../components/common/EmptyState'
 import { supportTicketSchema } from '../../lib/validation'
 import { useAuth } from '../../lib/authContext'
 
@@ -103,32 +104,50 @@ export const TicketDesk: React.FC = () => {
                 </button>
               }
             >
-              <div className="data-list">
-                {tickets.map((t) => (
-                  <div key={t.id} className="data-row" style={{ padding: '16px 0' }}>
-                    <div className="data-mark" style={{ background: '#f5f3ff', color: 'var(--purple)' }}>
-                      <LifeBuoy size={16} />
-                    </div>
-                    <div className="data-main">
-                      <b>{t.subject}</b>
-                      <small style={{ marginTop: '2px' }}>
-                        By {t.user_name || 'Guardian'} ({t.user_role || 'user'}) · Priority: {t.priority.toUpperCase()} · Logged: {new Date(t.created_at).toLocaleDateString()}
-                      </small>
-                      <small style={{ marginTop: '4px', color: '#555d78' }}>"{t.description}"</small>
-                    </div>
-                    <select
-                      className="status-select"
-                      value={t.status}
-                      onChange={(e) => handleUpdateStatus(t.id, e.target.value as any)}
+              {tickets.length === 0 ? (
+                <EmptyState
+                  icon={LifeBuoy}
+                  title="No Support Tickets"
+                  description="Support ticket queue is completely clear. Use the Open Ticket button to record a new customer request."
+                  action={
+                    <button
+                      type="button"
+                      className="button button-primary"
+                      onClick={() => setModalOpen(true)}
+                      style={{ padding: '8px 14px', fontSize: '10px' }}
                     >
-                      <option value="open">Open</option>
-                      <option value="in_progress">In Progress</option>
-                      <option value="resolved">Resolved</option>
-                      <option value="closed">Closed</option>
-                    </select>
-                  </div>
-                ))}
-              </div>
+                      <Plus size={12} /> Open Ticket
+                    </button>
+                  }
+                />
+              ) : (
+                <div className="data-list">
+                  {tickets.map((t) => (
+                    <div key={t.id} className="data-row" style={{ padding: '16px 0' }}>
+                      <div className="data-mark" style={{ background: '#f5f3ff', color: 'var(--purple)' }}>
+                        <LifeBuoy size={16} />
+                      </div>
+                      <div className="data-main">
+                        <b>{t.subject}</b>
+                        <small style={{ marginTop: '2px' }}>
+                          By {t.user_name || 'Guardian'} ({t.user_role || 'user'}) · Priority: {t.priority.toUpperCase()} · Logged: {new Date(t.created_at).toLocaleDateString()}
+                        </small>
+                        <small style={{ marginTop: '4px', color: '#555d78' }}>"{t.description}"</small>
+                      </div>
+                      <select
+                        className="status-select"
+                        value={t.status}
+                        onChange={(e) => handleUpdateStatus(t.id, e.target.value as any)}
+                      >
+                        <option value="open">Open</option>
+                        <option value="in_progress">In Progress</option>
+                        <option value="resolved">Resolved</option>
+                        <option value="closed">Closed</option>
+                      </select>
+                    </div>
+                  ))}
+                </div>
+              )}
             </Panel>
           </div>
         </div>

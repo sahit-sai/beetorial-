@@ -8,9 +8,12 @@ import { MeetingLauncher } from '../../components/providers/MeetingLauncher'
 import { DataService } from '../../lib/dataService'
 import { ClassSession, Homework } from '../../types'
 import { LoadingSpinner } from '../../components/common/LoadingSpinner'
+import { EmptyState } from '../../components/common/EmptyState'
+import { useAuth } from '../../lib/authContext'
 
 export const StudentDashboard: React.FC = () => {
   const nav = useNavigate()
+  const { user } = useAuth()
   const [classes, setClasses] = useState<ClassSession[]>([])
   const [homework, setHomework] = useState<Homework[]>([])
   const [loading, setLoading] = useState(true)
@@ -29,19 +32,21 @@ export const StudentDashboard: React.FC = () => {
     loadData()
   }, [])
 
+  const completedClasses = classes.filter((c) => c.status === 'completed').length
   const nextClass = classes.find((c) => c.status === 'scheduled')
+  const nextClassDate = nextClass ? new Date(nextClass.starts_at) : null
 
   return (
     <AppShell
-      title="Welcome back, Aditi!"
+      title={`Welcome back, ${user?.full_name || 'Learner'}!`}
       subtitle="Your classes, homework tasks and study materials — all in one connected space."
       activeRole="student"
     >
       <div className="stat-grid">
-        <Stat label="Current Confidence" value="78%" sub="+12% this month" icon={TrendingUp} kind="violet" />
-        <Stat label="Lessons Completed" value="8" sub="On schedule" icon={BookOpen} kind="blue" />
-        <Stat label="Pending Homework" value={String(homework.length)} sub="Due this week" icon={ClipboardList} kind="orange" />
-        <Stat label="Study Resources" value="12" sub="Ready to review" icon={BookMarked} kind="green" />
+        <Stat label="Current Confidence" value={classes.length > 0 ? `${Math.min(100, 75 + completedClasses * 5)}%` : '0%'} sub="Academic track" icon={TrendingUp} kind="violet" />
+        <Stat label="Lessons Completed" value={String(completedClasses)} sub={`${classes.length} total classes`} icon={BookOpen} kind="blue" />
+        <Stat label="Pending Homework" value={String(homework.length)} sub={homework.length > 0 ? 'Assigned tasks' : 'All caught up'} icon={ClipboardList} kind="orange" />
+        <Stat label="Scheduled Sessions" value={String(classes.filter((c) => c.status === 'scheduled').length)} sub="Upcoming" icon={BookMarked} kind="green" />
       </div>
 
       {loading ? (
@@ -58,17 +63,17 @@ export const StudentDashboard: React.FC = () => {
                 </button>
               }
             >
-              {nextClass ? (
+              {nextClass && nextClassDate ? (
                 <div className="lesson-row" style={{ padding: '14px 0' }}>
                   <div className="lesson-date">
-                    <small>OCT</small>
-                    <b>14</b>
+                    <small>{nextClassDate.toLocaleString('en-US', { month: 'short' }).toUpperCase()}</small>
+                    <b>{nextClassDate.getDate()}</b>
                   </div>
                   <div className="lesson-info">
-                    <b>{nextClass.course_title || 'Mathematics · Fractions & ratios'}</b>
-                    <small>Tutor: {nextClass.teacher_name || 'Ms. Priya Sharma'}</small>
+                    <b>{nextClass.course_title || 'Live Tutoring Class'}</b>
+                    <small>Tutor: {nextClass.teacher_name || 'Assigned Tutor'}</small>
                     <span>
-                      <Clock3 size={13} /> Tomorrow, 5:00–5:45 PM IST
+                      <Clock3 size={13} /> {nextClassDate.toLocaleDateString()} at {nextClassDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} IST
                     </span>
                   </div>
                   <MeetingLauncher
@@ -78,7 +83,12 @@ export const StudentDashboard: React.FC = () => {
                   />
                 </div>
               ) : (
-                <div className="empty">No live classes scheduled today.</div>
+                <div style={{ padding: '16px 0' }}>
+                  <EmptyState
+                    title="No live classes scheduled today"
+                    description="Your next online class link will show up here once scheduled by your tutor."
+                  />
+                </div>
               )}
             </Panel>
 
@@ -91,49 +101,66 @@ export const StudentDashboard: React.FC = () => {
                 </button>
               }
             >
-              <div className="data-list">
-                {homework.map((hw) => (
-                  <div key={hw.id} className="data-row">
-                    <div className="data-mark" style={{ background: '#f0efff', color: 'var(--purple)' }}>
-                      <ClipboardList size={16} />
+              {homework.length === 0 ? (
+                <div style={{ padding: '16px 0' }}>
+                  <EmptyState
+                    icon={ClipboardList}
+                    title="No assignments due"
+                    description="Your tutors have not assigned any pending homework tasks."
+                  />
+                </div>
+              ) : (
+                <div className="data-list">
+                  {homework.map((hw) => (
+                    <div key={hw.id} className="data-row">
+                      <div className="data-mark" style={{ background: '#f0efff', color: 'var(--purple)' }}>
+                        <ClipboardList size={16} />
+                      </div>
+                      <div className="data-main">
+                        <b>{hw.title}</b>
+                        <small>{hw.instructions}</small>
+                      </div>
+                      <button
+                        type="button"
+                        className="button button-primary"
+                        onClick={() => nav('/student/homework')}
+                        style={{ padding: '7px 11px', fontSize: '9px' }}
+                      >
+                        Submit <ArrowRight size={12} />
+                      </button>
                     </div>
-                    <div className="data-main">
-                      <b>{hw.title}</b>
-                      <small>{hw.instructions}</small>
-                    </div>
-                    <button
-                      type="button"
-                      className="button button-primary"
-                      onClick={() => nav('/student/homework')}
-                      style={{ padding: '7px 11px', fontSize: '9px' }}
-                    >
-                      Submit <ArrowRight size={12} />
-                    </button>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </Panel>
           </div>
 
           <div className="dashboard-col">
             <Panel title="Concept Confidence Meters" subtitle="Track your weekly progress across core subjects.">
-              <div className="skill-list">
-                {[
-                  { name: 'Mathematics: Fractions & Ratios', score: 78, color: 'violet' },
-                  { name: 'Science: Cell Structure & Functions', score: 86, color: 'green' },
-                  { name: 'English: Grammar & Composition', score: 72, color: 'blue' },
-                ].map((s) => (
-                  <div className="skill" key={s.name}>
-                    <div>
-                      <span>{s.name}</span>
-                      <b>{s.score}%</b>
+              {classes.length === 0 ? (
+                <div style={{ padding: '16px 0' }}>
+                  <EmptyState
+                    title="No subject data yet"
+                    description="Subject mastery meters will show your progress as you attend classes and submit assignments."
+                  />
+                </div>
+              ) : (
+                <div className="skill-list">
+                  {[
+                    { name: 'Core Subject Concepts', score: 80, color: 'violet' },
+                  ].map((s) => (
+                    <div className="skill" key={s.name}>
+                      <div>
+                        <span>{s.name}</span>
+                        <b>{s.score}%</b>
+                      </div>
+                      <div className="progress">
+                        <span className={s.color} style={{ width: `${s.score}%` }} />
+                      </div>
                     </div>
-                    <div className="progress">
-                      <span className={s.color} style={{ width: `${s.score}%` }} />
-                    </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </Panel>
 
             <Panel title="Today's Focus Checklist" subtitle="Small steps every day.">
@@ -141,22 +168,22 @@ export const StudentDashboard: React.FC = () => {
                 <label className="todo">
                   <input type="checkbox" defaultChecked />
                   <span>
-                    <b>Review reciprocal fractions rule</b>
-                    <small>Check page 42 in your mathematics guide.</small>
-                  </span>
-                </label>
-                <label className="todo">
-                  <input type="checkbox" defaultChecked />
-                  <span>
-                    <b>Upload homework worksheet #4</b>
-                    <small>Take a clear photo or scan as PDF.</small>
+                    <b>Review session notes</b>
+                    <small>Go over key formulas and definitions.</small>
                   </span>
                 </label>
                 <label className="todo">
                   <input type="checkbox" />
                   <span>
-                    <b>Prepare 1 question for Ms. Priya</b>
-                    <small>Write down any doubt from yesterday's exercise.</small>
+                    <b>Check assigned homework</b>
+                    <small>Submit practice worksheets before the deadline.</small>
+                  </span>
+                </label>
+                <label className="todo">
+                  <input type="checkbox" />
+                  <span>
+                    <b>Prepare 1 question for your tutor</b>
+                    <small>Write down any doubt from the previous lesson.</small>
                   </span>
                 </label>
               </div>

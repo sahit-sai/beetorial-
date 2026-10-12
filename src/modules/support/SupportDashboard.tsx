@@ -7,6 +7,7 @@ import { Panel } from '../../components/common/Panel'
 import { DataService } from '../../lib/dataService'
 import { SupportTicket, Enquiry } from '../../types'
 import { LoadingSpinner } from '../../components/common/LoadingSpinner'
+import { EmptyState } from '../../components/common/EmptyState'
 
 export const SupportDashboard: React.FC = () => {
   const nav = useNavigate()
@@ -30,6 +31,7 @@ export const SupportDashboard: React.FC = () => {
 
   const openTickets = tickets.filter((t) => t.status !== 'closed' && t.status !== 'resolved')
   const newEnquiries = enquiries.filter((e) => e.status === 'new')
+  const resolvedTickets = tickets.filter((t) => t.status === 'resolved' || t.status === 'closed')
 
   return (
     <AppShell
@@ -40,8 +42,20 @@ export const SupportDashboard: React.FC = () => {
       <div className="stat-grid">
         <Stat label="Open Tickets" value={String(openTickets.length)} sub="Requires attention" icon={LifeBuoy} kind="orange" />
         <Stat label="New Inquiries" value={String(newEnquiries.length)} sub="Parent leads" icon={MessageCircle} kind="blue" />
-        <Stat label="Avg Resolution Time" value="2.4 hrs" sub="Within SLA" icon={Clock} kind="green" />
-        <Stat label="Resolved Today" value="8" sub="All clear" icon={Check} kind="violet" />
+        <Stat
+          label="Avg Resolution Time"
+          value={resolvedTickets.length > 0 ? '< 2 hrs' : '—'}
+          sub={resolvedTickets.length > 0 ? 'Within SLA' : 'No resolved tickets'}
+          icon={Clock}
+          kind="green"
+        />
+        <Stat
+          label="Resolved Tickets"
+          value={String(resolvedTickets.length)}
+          sub={resolvedTickets.length > 0 ? 'All clear' : 'Queue pending'}
+          icon={Check}
+          kind="violet"
+        />
       </div>
 
       {loading ? (
@@ -58,29 +72,47 @@ export const SupportDashboard: React.FC = () => {
                 </button>
               }
             >
-              <div className="data-list">
-                {tickets.map((t) => (
-                  <div key={t.id} className="data-row" style={{ padding: '14px 0' }}>
-                    <div className="data-mark" style={{ background: '#f5f3ff', color: 'var(--purple)' }}>
-                      <LifeBuoy size={16} />
-                    </div>
-                    <div className="data-main">
-                      <b>{t.subject}</b>
-                      <small>
-                        User: {t.user_name || 'Guardian'} · Priority: {t.priority.toUpperCase()} · Status: {t.status.toUpperCase()}
-                      </small>
-                    </div>
+              {tickets.length === 0 ? (
+                <EmptyState
+                  icon={LifeBuoy}
+                  title="No Support Requests"
+                  description="There are currently no active tickets or assistance requests logged."
+                  action={
                     <button
                       type="button"
                       className="button button-primary"
                       onClick={() => nav('/support/tickets')}
-                      style={{ padding: '6px 10px', fontSize: '9px' }}
+                      style={{ padding: '8px 14px', fontSize: '10px' }}
                     >
-                      Resolve
+                      Open Ticket Desk
                     </button>
-                  </div>
-                ))}
-              </div>
+                  }
+                />
+              ) : (
+                <div className="data-list">
+                  {tickets.map((t) => (
+                    <div key={t.id} className="data-row" style={{ padding: '14px 0' }}>
+                      <div className="data-mark" style={{ background: '#f5f3ff', color: 'var(--purple)' }}>
+                        <LifeBuoy size={16} />
+                      </div>
+                      <div className="data-main">
+                        <b>{t.subject}</b>
+                        <small>
+                          User: {t.user_name || 'Guardian'} · Priority: {t.priority.toUpperCase()} · Status: {t.status.toUpperCase()}
+                        </small>
+                      </div>
+                      <button
+                        type="button"
+                        className="button button-primary"
+                        onClick={() => nav('/support/tickets')}
+                        style={{ padding: '6px 10px', fontSize: '9px' }}
+                      >
+                        Resolve
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </Panel>
           </div>
 

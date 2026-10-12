@@ -5,6 +5,7 @@ import { Panel } from '../../components/common/Panel'
 import { DataService } from '../../lib/dataService'
 import { Enquiry } from '../../types'
 import { LoadingSpinner } from '../../components/common/LoadingSpinner'
+import { EmptyState } from '../../components/common/EmptyState'
 import { enquirySchema } from '../../lib/validation'
 import { useAuth } from '../../lib/authContext'
 
@@ -157,34 +158,58 @@ export const EnquiriesCrm: React.FC = () => {
                 </div>
               </div>
 
-              <div className="data-list">
-                {filtered.map((enq) => (
-                  <div key={enq.id} className="data-row" style={{ padding: '16px 0' }}>
-                    <div className="data-mark" style={{ background: '#f0efff', color: 'var(--purple)' }}>
-                      <MessageCircle size={16} />
-                    </div>
-                    <div className="data-main">
-                      <b>{enq.parent_name} · {enq.subject} ({enq.student_grade || 'Grade 8'})</b>
-                      <small style={{ marginTop: '3px' }}>
-                        <Mail size={11} style={{ verticalAlign: 'middle' }} /> {enq.parent_email} {enq.parent_phone && `· 📞 ${enq.parent_phone}`}
-                      </small>
-                      <small style={{ marginTop: '5px', color: '#555d78' }}>
-                        Note: "{enq.notes || 'No notes entered.'}"
-                      </small>
-                    </div>
-                    <select
-                      className="status-select"
-                      value={enq.status}
-                      onChange={(e) => handleUpdateStatus(enq.id, e.target.value as any)}
+              {filtered.length === 0 ? (
+                <EmptyState
+                  icon={MessageCircle}
+                  title="No Enquiries Found"
+                  description={
+                    search
+                      ? `No enquiries matching "${search}".`
+                      : filter !== 'All'
+                      ? `No enquiries with status "${filter}".`
+                      : 'There are currently no inbound parent enquiries registered.'
+                  }
+                  action={
+                    <button
+                      type="button"
+                      className="button button-primary"
+                      onClick={() => setModalOpen(true)}
+                      style={{ padding: '8px 14px', fontSize: '10px' }}
                     >
-                      <option value="new">New</option>
-                      <option value="contacted">Contacted</option>
-                      <option value="trial_booked">Trial booked</option>
-                      <option value="closed">Closed</option>
-                    </select>
-                  </div>
-                ))}
-              </div>
+                      <Plus size={12} /> Add Enquiry
+                    </button>
+                  }
+                />
+              ) : (
+                <div className="data-list">
+                  {filtered.map((enq) => (
+                    <div key={enq.id} className="data-row" style={{ padding: '16px 0' }}>
+                      <div className="data-mark" style={{ background: '#f0efff', color: 'var(--purple)' }}>
+                        <MessageCircle size={16} />
+                      </div>
+                      <div className="data-main">
+                        <b>{enq.parent_name} · {enq.subject} ({enq.student_grade || 'Grade 8'})</b>
+                        <small style={{ marginTop: '3px' }}>
+                          <Mail size={11} style={{ verticalAlign: 'middle' }} /> {enq.parent_email} {enq.parent_phone && `· 📞 ${enq.parent_phone}`}
+                        </small>
+                        <small style={{ marginTop: '5px', color: '#555d78' }}>
+                          Note: "{enq.notes || 'No notes entered.'}"
+                        </small>
+                      </div>
+                      <select
+                        className="status-select"
+                        value={enq.status}
+                        onChange={(e) => handleUpdateStatus(enq.id, e.target.value as any)}
+                      >
+                        <option value="new">New</option>
+                        <option value="contacted">Contacted</option>
+                        <option value="trial_booked">Trial booked</option>
+                        <option value="closed">Closed</option>
+                      </select>
+                    </div>
+                  ))}
+                </div>
+              )}
             </Panel>
           </div>
         </div>
@@ -208,7 +233,7 @@ export const EnquiriesCrm: React.FC = () => {
               <input required value={parentName} onChange={(e) => setParentName(e.target.value)} placeholder="e.g. Meera S." />
             </label>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+            <div className="form-grid-2">
               <label className="input-label">
                 Parent Email
                 <input type="email" required value={parentEmail} onChange={(e) => setParentEmail(e.target.value)} placeholder="parent@example.com" />
@@ -220,7 +245,7 @@ export const EnquiriesCrm: React.FC = () => {
               </label>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+            <div className="form-grid-2">
               <label className="input-label">
                 Student Grade
                 <select value={studentGrade} onChange={(e) => setStudentGrade(e.target.value)}>

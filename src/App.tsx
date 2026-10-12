@@ -3,7 +3,7 @@
 // ====================================================================
 
 import React from 'react'
-import { Routes, Route, Navigate } from 'react-router-dom'
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { AuthProvider, useAuth } from './lib/authContext'
 import { AppRole } from './types'
 
@@ -60,19 +60,28 @@ import { LoadingSpinner } from './components/common/LoadingSpinner'
 
 /**
  * Route Gate enforcing server-loaded verified role access.
+ * Automatically preserves the requested role and path for seamless portal redirection.
  */
 const ProtectedRoute: React.FC<{
   allowedRoles: AppRole[]
   children: React.ReactElement
 }> = ({ allowedRoles, children }) => {
   const { user, role, loading } = useAuth()
+  const location = useLocation()
 
   if (loading) {
     return <LoadingSpinner message="Verifying session authorization..." />
   }
 
   if (!user || !role) {
-    return <Navigate to="/login" replace />
+    const targetRole = allowedRoles[0] || 'parent'
+    return (
+      <Navigate
+        to={`/login?role=${targetRole}&redirect=${encodeURIComponent(location.pathname)}`}
+        state={{ from: location }}
+        replace
+      />
+    )
   }
 
   // Super admin can inspect all workspaces
@@ -92,6 +101,21 @@ export default function App() {
         {/* Public Routes */}
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login />} />
+
+        {/* Portal-specific login shortcuts */}
+        <Route path="/student/login" element={<Navigate to="/login?role=student" replace />} />
+        <Route path="/teacher/login" element={<Navigate to="/login?role=teacher" replace />} />
+        <Route path="/parent/login" element={<Navigate to="/login?role=parent" replace />} />
+        <Route path="/admin/login" element={<Navigate to="/login?role=admin" replace />} />
+        <Route path="/superadmin/login" element={<Navigate to="/login?role=super_admin" replace />} />
+        <Route path="/super-admin/login" element={<Navigate to="/login?role=super_admin" replace />} />
+        <Route path="/support/login" element={<Navigate to="/login?role=support" replace />} />
+
+        {/* Friendly path aliases */}
+        <Route path="/superadmin/*" element={<Navigate to="/super-admin" replace />} />
+        <Route path="/superadmin" element={<Navigate to="/super-admin" replace />} />
+        <Route path="/tutor/*" element={<Navigate to="/teacher" replace />} />
+        <Route path="/tutor" element={<Navigate to="/teacher" replace />} />
 
         {/* Parent Workspace */}
         <Route

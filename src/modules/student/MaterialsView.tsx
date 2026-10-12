@@ -1,7 +1,8 @@
 import React, { useState } from 'react'
-import { BookMarked, Download, FileText, Search } from 'lucide-react'
+import { BookMarked, Download, Search, Plus, X } from 'lucide-react'
 import { AppShell } from '../../components/common/AppShell'
 import { Panel } from '../../components/common/Panel'
+import { EmptyState } from '../../components/common/EmptyState'
 
 interface MaterialItem {
   id: string
@@ -12,44 +13,20 @@ interface MaterialItem {
   downloadUrl: string
 }
 
+const STORAGE_KEY = 'beetorial_study_materials'
+
+function loadMaterials(): MaterialItem[] {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY)
+    if (raw) return JSON.parse(raw)
+  } catch {}
+  return []
+}
+
 export const MaterialsView: React.FC = () => {
+  const [materials, setMaterials] = useState<MaterialItem[]>(loadMaterials)
   const [filter, setFilter] = useState('All')
   const [search, setSearch] = useState('')
-
-  const materials: MaterialItem[] = [
-    {
-      id: 'mat-1',
-      title: 'Fractions & Mixed Numbers Revision Sheet',
-      subject: 'Mathematics',
-      type: 'PDF Worksheet',
-      size: '1.2 MB',
-      downloadUrl: '#',
-    },
-    {
-      id: 'mat-2',
-      title: 'Ratio & Proportions Visual Cheat Sheet',
-      subject: 'Mathematics',
-      type: 'Reference Guide',
-      size: '850 KB',
-      downloadUrl: '#',
-    },
-    {
-      id: 'mat-3',
-      title: 'Cell Organelles & Biological Functions Diagram',
-      subject: 'Science',
-      type: 'Illustrated Poster',
-      size: '2.4 MB',
-      downloadUrl: '#',
-    },
-    {
-      id: 'mat-4',
-      title: 'English Vocabulary & Transition Words Guide',
-      subject: 'English',
-      type: 'Writing Handbook',
-      size: '980 KB',
-      downloadUrl: '#',
-    },
-  ]
 
   const filtered = materials.filter((m) => {
     const matchesFilter = filter === 'All' || m.subject === filter
@@ -62,7 +39,7 @@ export const MaterialsView: React.FC = () => {
   return (
     <AppShell
       title="Study Materials & Class Resources"
-      subtitle="Curated worksheets, formula reference guides and lesson revision sheets."
+      subtitle="Worksheets, formula reference guides and lesson revision sheets."
       activeRole="student"
     >
       <div className="dashboard-grid">
@@ -99,28 +76,38 @@ export const MaterialsView: React.FC = () => {
               />
             </div>
 
-            <div className="data-list">
-              {filtered.map((mat) => (
-                <div key={mat.id} className="data-row" style={{ padding: '14px 0' }}>
-                  <div className="data-mark" style={{ background: '#f5f3ff', color: 'var(--purple)' }}>
-                    <BookMarked size={16} />
+            {filtered.length === 0 ? (
+              <div style={{ padding: '24px 0' }}>
+                <EmptyState
+                  icon={BookMarked}
+                  title="No study materials available"
+                  description="Worksheets, formula reference cards and revision packs will appear here once shared by your teachers."
+                />
+              </div>
+            ) : (
+              <div className="data-list">
+                {filtered.map((mat) => (
+                  <div key={mat.id} className="data-row" style={{ padding: '14px 0' }}>
+                    <div className="data-mark" style={{ background: '#f5f3ff', color: 'var(--purple)' }}>
+                      <BookMarked size={16} />
+                    </div>
+                    <div className="data-main">
+                      <b>{mat.title}</b>
+                      <small>
+                        {mat.subject} · {mat.type} · {mat.size}
+                      </small>
+                    </div>
+                    <button
+                      type="button"
+                      className="subtle-button"
+                      onClick={() => alert(`Accessing verified resource: ${mat.title}`)}
+                    >
+                      <Download size={13} /> Download
+                    </button>
                   </div>
-                  <div className="data-main">
-                    <b>{mat.title}</b>
-                    <small>
-                      {mat.subject} · {mat.type} · {mat.size}
-                    </small>
-                  </div>
-                  <button
-                    type="button"
-                    className="subtle-button"
-                    onClick={() => alert(`Downloading ${mat.title} (Verified Demo Resource)`)}
-                  >
-                    <Download size={13} /> Download
-                  </button>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </Panel>
         </div>
       </div>

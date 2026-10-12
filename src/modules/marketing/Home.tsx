@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
   ArrowRight,
@@ -11,10 +11,14 @@ import {
   ShieldCheck,
   TrendingUp,
   UserRound,
+  Menu,
+  X,
 } from 'lucide-react'
 import { Logo } from '../../components/common/Logo'
 
 export const Home: React.FC = () => {
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+
   return (
     <>
       <header className="topbar">
@@ -29,10 +33,34 @@ export const Home: React.FC = () => {
             Log in
           </Link>
           <Link className="button button-primary" to="/login">
-            Find a class <ArrowRight size={16} />
+            Find a class <ArrowRight size={14} />
           </Link>
+          <button
+            type="button"
+            className="mobile-nav-toggle"
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            aria-label="Toggle navigation menu"
+          >
+            {mobileMenuOpen ? <X size={18} /> : <Menu size={18} />}
+          </button>
         </div>
       </header>
+
+      {mobileMenuOpen && (
+        <div className="mobile-nav-drawer">
+          <a href="#how" onClick={() => setMobileMenuOpen(false)}>How it works</a>
+          <a href="#subjects" onClick={() => setMobileMenuOpen(false)}>Subjects</a>
+          <a href="#parents" onClick={() => setMobileMenuOpen(false)}>For parents</a>
+          <div className="mobile-drawer-footer">
+            <Link className="button subtle-button" to="/login" onClick={() => setMobileMenuOpen(false)}>
+              Log in
+            </Link>
+            <Link className="button button-primary" to="/login" onClick={() => setMobileMenuOpen(false)}>
+              Find a class <ArrowRight size={14} />
+            </Link>
+          </div>
+        </div>
+      )}
 
       <main className="home">
         <section className="hero">
@@ -77,9 +105,9 @@ export const Home: React.FC = () => {
                 <span className="live-dot" /> YOUR LEARNING SNAPSHOT <span className="more">•••</span>
               </div>
               <div className="student-row">
-                <div className="student-avatar">A</div>
+                <div className="student-avatar">L</div>
                 <div>
-                  <b>Ananya's progress</b>
+                  <b>Learner progress</b>
                   <small>Grade 8 · Mathematics</small>
                 </div>
                 <span className="trend">

@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { GraduationCap, Search, Mail, Phone, Plus, X, Check } from 'lucide-react'
 import { AppShell } from '../../components/common/AppShell'
 import { Panel } from '../../components/common/Panel'
+import { EmptyState } from '../../components/common/EmptyState'
 
 interface StudentRecord {
   id: string
@@ -13,38 +14,26 @@ interface StudentRecord {
   status: 'active' | 'trial' | 'inactive'
 }
 
+const STORAGE_KEY = 'beetorial_admin_students'
+
+function loadStudents(): StudentRecord[] {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY)
+    if (raw) return JSON.parse(raw)
+  } catch {}
+  return []
+}
+
+function saveStudents(data: StudentRecord[]) {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data))
+  } catch {}
+}
+
 export const StudentDirectory: React.FC = () => {
   const [search, setSearch] = useState('')
   const [modalOpen, setModalOpen] = useState(false)
-  const [students, setStudents] = useState<StudentRecord[]>([
-    {
-      id: 'STD-101',
-      name: 'Aditi Raman',
-      grade: 'Grade 8',
-      parentName: 'Ananya Raman',
-      parentEmail: 'parent@beetorial.example',
-      subject: 'Mathematics & Science',
-      status: 'active',
-    },
-    {
-      id: 'STD-102',
-      name: 'Rahul Sharma',
-      grade: 'Grade 6',
-      parentName: 'Sanjay Sharma',
-      parentEmail: 'sanjay@example.com',
-      subject: 'Science Foundation',
-      status: 'active',
-    },
-    {
-      id: 'STD-103',
-      name: 'Meera K.',
-      grade: 'Grade 5',
-      parentName: 'Kavita K.',
-      parentEmail: 'kavita@example.com',
-      subject: 'English Comprehension',
-      status: 'trial',
-    },
-  ])
+  const [students, setStudents] = useState<StudentRecord[]>(loadStudents)
 
   const [newName, setNewName] = useState('')
   const [newGrade, setNewGrade] = useState('Grade 8')
@@ -61,13 +50,15 @@ export const StudentDirectory: React.FC = () => {
       id: `STD-${Math.floor(100 + Math.random() * 899)}`,
       name: newName,
       grade: newGrade,
-      parentName: newParent,
-      parentEmail: newEmail,
+      parentName: newParent || 'Guardian',
+      parentEmail: newEmail || 'guardian@example.com',
       subject: newSubject,
       status: 'active',
     }
 
-    setStudents([created, ...students])
+    const next = [created, ...students]
+    setStudents(next)
+    saveStudents(next)
     setNotice(`Enrolled new student: ${newName}!`)
     setModalOpen(false)
     setNewName('')
@@ -121,34 +112,54 @@ export const StudentDirectory: React.FC = () => {
               />
             </div>
 
-            <div className="data-list">
-              {filtered.map((s) => (
-                <div key={s.id} className="data-row" style={{ padding: '14px 0' }}>
-                  <div className="data-mark" style={{ background: '#f5f3ff', color: 'var(--purple)' }}>
-                    <GraduationCap size={16} />
+            {filtered.length === 0 ? (
+              <div style={{ padding: '24px 0' }}>
+                <EmptyState
+                  icon={GraduationCap}
+                  title="No students registered"
+                  description="Enroll your first student using the 'Add Student' button above."
+                  action={
+                    <button
+                      type="button"
+                      className="button button-primary"
+                      onClick={() => setModalOpen(true)}
+                      style={{ padding: '8px 12px', fontSize: '10px' }}
+                    >
+                      <Plus size={13} /> Add Student
+                    </button>
+                  }
+                />
+              </div>
+            ) : (
+              <div className="data-list">
+                {filtered.map((s) => (
+                  <div key={s.id} className="data-row" style={{ padding: '14px 0' }}>
+                    <div className="data-mark" style={{ background: '#f5f3ff', color: 'var(--purple)' }}>
+                      <GraduationCap size={16} />
+                    </div>
+                    <div className="data-main">
+                      <b>{s.name} ({s.grade}) · {s.subject}</b>
+                      <small>
+                        {s.id} · Guardian: {s.parentName} ({s.parentEmail})
+                      </small>
+                    </div>
+                    <span
+                      style={{
+                        fontSize: '9px',
+                        fontWeight: 700,
+                        padding: '4px 8px',
+                        borderRadius: '6px',
+                        textTransform: 'uppercase',
+                        background: '#e6f8ec',
+                        color: '#24845a',
+                      }}
+                    >
+                      {s.status}
+                    </span>
                   </div>
-                  <div className="data-main">
-                    <b>{s.name} ({s.grade}) · {s.subject}</b>
-                    <small>
-                      {s.id} · Guardian: {s.parentName} ({s.parentEmail})
-                    </small>
-                  </div>
-                  <span
-                    style={{
-                      fontSize: '9px',
-                      fontWeight: 700,
-                      padding: '4px 8px',
-                      borderRadius: '6px',
-                      textTransform: 'uppercase',
-                      background: s.status === 'active' ? '#e6f8ec' : '#fff8e6',
-                      color: s.status === 'active' ? '#24845a' : '#c98a1f',
-                    }}
-                  >
-                    {s.status}
-                  </span>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </Panel>
         </div>
       </div>
@@ -159,7 +170,7 @@ export const StudentDirectory: React.FC = () => {
             <div className="modal-head">
               <div>
                 <h3>Add New Student</h3>
-                <p>Register a student profile with parent link</p>
+                <p>Register student record and parent details</p>
               </div>
               <button type="button" className="icon-button" onClick={() => setModalOpen(false)}>
                 <X size={18} />
@@ -168,38 +179,61 @@ export const StudentDirectory: React.FC = () => {
 
             <label className="input-label">
               Student Full Name
-              <input required value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="e.g. Aryan Nair" />
+              <input
+                required
+                value={newName}
+                onChange={(e) => setNewName(e.target.value)}
+                placeholder="e.g. Student Name"
+              />
+            </label>
+
+            <div className="form-grid-2">
+              <label className="input-label">
+                Grade Level
+                <select value={newGrade} onChange={(e) => setNewGrade(e.target.value)}>
+                  <option value="Grade 5">Grade 5</option>
+                  <option value="Grade 6">Grade 6</option>
+                  <option value="Grade 7">Grade 7</option>
+                  <option value="Grade 8">Grade 8</option>
+                  <option value="Grade 9">Grade 9</option>
+                  <option value="Grade 10">Grade 10</option>
+                </select>
+              </label>
+
+              <label className="input-label">
+                Primary Subject Track
+                <input
+                  required
+                  value={newSubject}
+                  onChange={(e) => setNewSubject(e.target.value)}
+                  placeholder="e.g. Mathematics & Science"
+                />
+              </label>
+            </div>
+
+            <label className="input-label">
+              Parent / Guardian Name
+              <input
+                required
+                value={newParent}
+                onChange={(e) => setNewParent(e.target.value)}
+                placeholder="e.g. Guardian Name"
+              />
             </label>
 
             <label className="input-label">
-              Grade Level
-              <select value={newGrade} onChange={(e) => setNewGrade(e.target.value)}>
-                <option value="Grade 5">Grade 5</option>
-                <option value="Grade 6">Grade 6</option>
-                <option value="Grade 7">Grade 7</option>
-                <option value="Grade 8">Grade 8</option>
-                <option value="Grade 9">Grade 9</option>
-                <option value="Grade 10">Grade 10</option>
-              </select>
-            </label>
-
-            <label className="input-label">
-              Guardian Name
-              <input required value={newParent} onChange={(e) => setNewParent(e.target.value)} placeholder="e.g. Meera Nair" />
-            </label>
-
-            <label className="input-label">
-              Guardian Email Address
-              <input type="email" required value={newEmail} onChange={(e) => setNewEmail(e.target.value)} placeholder="guardian@example.com" />
-            </label>
-
-            <label className="input-label">
-              Focus Subject
-              <input value={newSubject} onChange={(e) => setNewSubject(e.target.value)} placeholder="e.g. Mathematics" />
+              Parent Contact Email
+              <input
+                type="email"
+                required
+                value={newEmail}
+                onChange={(e) => setNewEmail(e.target.value)}
+                placeholder="parent@example.com"
+              />
             </label>
 
             <button className="button button-primary button-full" type="submit">
-              Save Student Profile
+              Confirm Student Enrollment
             </button>
           </form>
         </div>

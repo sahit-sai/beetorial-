@@ -260,6 +260,14 @@ export const AppShell: React.FC<AppShellProps> = ({
         </div>
       </aside>
 
+      {mobileOpen && (
+        <div
+          className="sidebar-backdrop"
+          onClick={() => setMobileOpen(false)}
+          aria-hidden="true"
+        />
+      )}
+
       {/* Main Content Area */}
       <main className="dashboard-main">
         <header className="dash-top">

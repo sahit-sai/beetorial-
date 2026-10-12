@@ -5,6 +5,7 @@ import { Panel } from '../../components/common/Panel'
 import { DataService } from '../../lib/dataService'
 import { AuditLog } from '../../types'
 import { LoadingSpinner } from '../../components/common/LoadingSpinner'
+import { EmptyState } from '../../components/common/EmptyState'
 
 export const AuditActivity: React.FC = () => {
   const [logs, setLogs] = useState<AuditLog[]>([])
@@ -85,29 +86,41 @@ export const AuditActivity: React.FC = () => {
                 />
               </div>
 
-              <div className="data-list">
-                {filtered.map((log) => (
-                  <div key={log.id} className="data-row" style={{ padding: '14px 0', alignItems: 'flex-start' }}>
-                    <div className="data-mark" style={{ background: '#f5f3ff', color: 'var(--purple)', marginTop: '2px' }}>
-                      <ShieldCheck size={16} />
-                    </div>
-                    <div className="data-main">
-                      <b>{log.action} · {log.resource_type.toUpperCase()}</b>
-                      <small style={{ marginTop: '2px' }}>
-                        Actor: {log.actor_name || 'System Actor'} ({log.actor_role || 'system'}) {log.resource_id && `· Resource: ${log.resource_id}`}
-                      </small>
-                      {log.metadata && Object.keys(log.metadata).length > 0 && (
-                        <small style={{ marginTop: '4px', fontFamily: 'monospace', color: '#555d78' }}>
-                          {JSON.stringify(log.metadata)}
+              {filtered.length === 0 ? (
+                <EmptyState
+                  icon={ShieldCheck}
+                  title="No Audit Records"
+                  description={
+                    search
+                      ? `No audit events matching "${search}".`
+                      : 'No system security events recorded yet.'
+                  }
+                />
+              ) : (
+                <div className="data-list">
+                  {filtered.map((log) => (
+                    <div key={log.id} className="data-row" style={{ padding: '14px 0', alignItems: 'flex-start' }}>
+                      <div className="data-mark" style={{ background: '#f5f3ff', color: 'var(--purple)', marginTop: '2px' }}>
+                        <ShieldCheck size={16} />
+                      </div>
+                      <div className="data-main">
+                        <b>{log.action} · {log.resource_type.toUpperCase()}</b>
+                        <small style={{ marginTop: '2px' }}>
+                          Actor: {log.actor_name || 'System Actor'} ({log.actor_role || 'system'}) {log.resource_id && `· Resource: ${log.resource_id}`}
                         </small>
-                      )}
+                        {log.metadata && Object.keys(log.metadata).length > 0 && (
+                          <small style={{ marginTop: '4px', fontFamily: 'monospace', color: '#555d78' }}>
+                            {JSON.stringify(log.metadata)}
+                          </small>
+                        )}
+                      </div>
+                      <time style={{ fontSize: '9px', color: '#858ca2', whiteSpace: 'nowrap' }}>
+                        {new Date(log.created_at).toLocaleString()}
+                      </time>
                     </div>
-                    <time style={{ fontSize: '9px', color: '#858ca2', whiteSpace: 'nowrap' }}>
-                      {new Date(log.created_at).toLocaleString()}
-                    </time>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </Panel>
           </div>
         </div>

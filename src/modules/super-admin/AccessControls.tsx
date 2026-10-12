@@ -16,6 +16,7 @@ import { DataService } from '../../lib/dataService'
 import { AppRole, Profile } from '../../types'
 import { useAuth } from '../../lib/authContext'
 import { LoadingSpinner } from '../../components/common/LoadingSpinner'
+import { EmptyState } from '../../components/common/EmptyState'
 
 export const AccessControls: React.FC = () => {
   const { user } = useAuth()
@@ -249,30 +250,38 @@ export const AccessControls: React.FC = () => {
                 </form>
               )}
 
-              <div className="data-list">
-                {profiles.map((p) => (
-                  <div key={p.id} className="user-access" style={{ padding: '14px 0' }}>
-                    <div className="user-avatar">{p.full_name.charAt(0)}</div>
-                    <div className="data-main">
-                      <b>{p.full_name}</b>
-                      <small>{p.id.slice(0, 18)}...</small>
-                      <select
-                        className="status-select"
-                        value={p.role}
-                        onChange={(e) => handleRoleChange(p.id, e.target.value as AppRole)}
-                        disabled={p.id === user?.id && p.role === 'super_admin'}
-                        style={{ marginTop: '6px' }}
-                      >
-                        {(['parent', 'student', 'teacher', 'admin', 'super_admin', 'support'] as AppRole[]).map((r) => (
-                          <option key={r} value={r}>
-                            {r.toUpperCase()}
-                          </option>
-                        ))}
-                      </select>
+              {profiles.length === 0 ? (
+                <EmptyState
+                  icon={Users}
+                  title="No User Profiles"
+                  description="No registered user profiles found to assign roles."
+                />
+              ) : (
+                <div className="data-list">
+                  {profiles.map((p) => (
+                    <div key={p.id} className="user-access" style={{ padding: '14px 0' }}>
+                      <div className="user-avatar">{p.full_name.charAt(0)}</div>
+                      <div className="data-main">
+                        <b>{p.full_name}</b>
+                        <small>{p.id.slice(0, 18)}...</small>
+                        <select
+                          className="status-select"
+                          value={p.role}
+                          onChange={(e) => handleRoleChange(p.id, e.target.value as AppRole)}
+                          disabled={p.id === user?.id && p.role === 'super_admin'}
+                          style={{ marginTop: '6px' }}
+                        >
+                          {(['parent', 'student', 'teacher', 'admin', 'super_admin', 'support'] as AppRole[]).map((r) => (
+                            <option key={r} value={r}>
+                              {r.toUpperCase()}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
                     </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </Panel>
           </div>
         </div>
